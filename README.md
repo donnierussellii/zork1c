@@ -1,6 +1,5 @@
->Port Zork to C
-
-You can't see any compiler here!
+> Port Zork to C
+  You can't see any compiler here!
 
 
 This project grew out of my attempt to write a new parser for a 1980s text
