@@ -9,3 +9,6 @@ prompt, and many other little things.
 This source code is provided for personal, educational use only.
 You are welcome to use this source code to develop your own works,
 but the story-related content belongs to the original authors of Zork.
+
+Currently working on:
+Putting objects inside various things (basket, grate, river...)
