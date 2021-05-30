@@ -23,7 +23,7 @@ int TotalCompressed;
 
 
 
-//from compression.c
+//from compress.c
 int CompressText(char *text_in, int size_in, char *text_out);
 
 

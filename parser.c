@@ -1206,6 +1206,8 @@ int TakeOutOfRoutine(int *container)
     return 1;
   }
 
+  if (InterceptTakeOutOf(*container)) return 1;
+
   if ((Obj[*container].prop & PROP_OPEN) == 0 ||
       (Obj[*container].prop & PROP_ACTOR))
   {
@@ -1477,232 +1479,80 @@ void ParseActionTake(void)
 
 
 
-void ParseActionDropPut(int put_flag)
+int DropPutVerifyContainer(int container)
 {
-  int obj;
-
-  if (MatchCurWord("all") || MatchCurWord("everything")) //beginning of "drop/put all"
+  if (container == FOBJ_SCENERY_NOTVIS || container == FOBJ_NOTVIS)
   {
-    int num_exceptions, nothing_dropped, into_flag, container;
-    unsigned short exception[80]; //stores objects not to be dropped/put by "drop/put all"
+    PrintLine("At least one of those objects isn't visible here!");
+    return 1;
+  }
 
-    container = 0;
-    num_exceptions = 0;
+  if (container == OBJ_YOU)
+  {
+    PrintLine("Seriously?!");
+    return 1;
+  }
 
-    if (MatchCurWord("but") || MatchCurWord("except"))
+  if (container < NUM_OBJECTS)
+  {
+    if (IsObjVisible(container) == 0)
     {
-      MatchCurWord("for"); // skip "for" if it exists
-
-      for (;;)
-      {
-        obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
-  
-        if (obj == OBJ_YOU || obj >= NUM_OBJECTS)
-        {
-          PrintLine("You're not holding at least one of those objects!");
-          return;
-        }
-  
-        if (Obj[obj].loc != 2048 + OBJ_YOU)
-        {
-          PrintLine("You're not holding at least one of those objects!");
-          return;
-        }
-  
-        exception[num_exceptions++] = obj;
-        if (num_exceptions == 80 || CurWord == NumStrWords) break;
-  
-        if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside"))
-        {
-          CurWord--; //back up so in/into/inside can be processed below
-          break;
-        }
-  
-        if (MatchCurWord("then"))
-        {
-          CurWord--; //end of this turn's command; back up so "then" can be matched later
-          break;
-        }
-  
-        if (MatchCurWord("and") == 0)
-        {
-          PrintLine("Please use a comma or the word \"and\" between nouns.");
-          return;
-        }
-
-        for (;;) if (MatchCurWord("and") == 0) break; // handle repeated "and"s like "take one, two, and three"
-      }
+      PrintObjectDesc(container, 0);
+      PrintLine(": You can't see that here.");
+      return 1;
     }
 
-    //change "drop" to "put" (if not already) if container will be specified
-    if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside"))
+    if ((Obj[container].prop & PROP_OPEN) == 0 ||
+        (Obj[container].prop & PROP_ACTOR))
     {
-      into_flag = 1;
-      put_flag = 1;
-    }
-    else into_flag = 0;
+      PrintObjectDesc(container, 0);
+      PrintText(": ");
 
-    if (put_flag)
-    {
-      if (into_flag == 0)
+      if (Obj[container].prop & PROP_OPENABLE)
       {
-        PrintLine("You need to specify a container.");
-        return;
+        PrintLine("You need to open it first.");
+        ItObj = container;
       }
-
-      container = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (container <= 0) return;
-
-      if (container == FOBJ_SCENERY_NOTVIS || container == FOBJ_NOTVIS)
-      {
-        PrintLine("At least one of those objects isn't visible here!");
-        return;
-      }
-
-      if (container == OBJ_YOU || container >= NUM_OBJECTS)
-      {
-        PrintLine("You can't put anything into that.");
-        return;
-      }
-
-      if (IsObjVisible(container) == 0)
-      {
-        PrintObjectDesc(container, 0);
-        PrintText(": ");
-
-        PrintLine("You can't see that here.");
-
-        return;
-      }
-
-      if ((Obj[container].prop & PROP_OPEN) == 0 ||
-          (Obj[container].prop & PROP_ACTOR))
-      {
-        PrintObjectDesc(container, 0);
-        PrintText(": ");
-
-        if (Obj[container].prop & PROP_OPENABLE)
-        {
-          PrintLine("You need to open it first.");
-          ItObj = container;
-        }
-        else
-          PrintLine("You can't put anything into that!");
-
-        return;
-      }
-    }
-
-    nothing_dropped = 1;
-    for (;;)
-    {
-      int i;
-
-      for (i=2; i<NUM_OBJECTS; i++)
-      {
-        obj = Obj[i].order;
-        if (Obj[obj].loc == 2048 + OBJ_YOU && obj != container)
-        {
-          int j;
-
-          for (j=0; j<num_exceptions; j++)
-            if (obj == exception[j]) break;
-          if (j == num_exceptions)
-          {
-            PrintObjectDesc(obj, 0);
-            PrintText(": ");
-
-            if (put_flag && GetTotalSizeInLocation(2048 + container) + Obj[obj].size > Obj[container].capacity)
-            {
-              PrintLine("It won't hold any more!");
-              return;
-            }
-
-            Obj[obj].loc = put_flag ? 2048 + container : Obj[OBJ_YOU].loc;
-
-            MoveObjOrderToLast(obj);
-
-            PrintLine("Okay.");
-
-            TimePassed = 1;
-
-            nothing_dropped = 0;
-            break;
-          }
-        }
-      }
-      if (i == NUM_OBJECTS) break;
-    }
-
-    if (nothing_dropped)
-    {
-      if (put_flag)
-        PrintLine("There was nothing to put into it.");
       else
-        PrintLine("There was nothing to drop.");
+        PrintLine("You can't put anything into that!");
+
+      return 1;
     }
-    return;
-  } //end of "drop/put all"
+  }
+
+  return 0;
+}
 
 
+
+void DropPutAllRoutine(int put_flag)
+{
+  int i, j, obj, num_exceptions, nothing_dropped, into_flag, container, prev_darkness;
+  unsigned short exception[80]; //stores objects not to be dropped/put by "drop/put all"
+
+  container = 0;
+  num_exceptions = 0;
+
+  if (MatchCurWord("but") || MatchCurWord("except"))
   {
-    int i, num_drops, container;
-    unsigned short drop[80]; //stores objects to be dropped
-
-    container = 0;
-    num_drops = 0;
+    MatchCurWord("for"); // skip "for" if it exists
 
     for (;;)
     {
       obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
 
-      drop[num_drops++] = obj;
-      if (num_drops == 80 || CurWord == NumStrWords) break;
+      if (obj == OBJ_YOU || obj >= NUM_OBJECTS)
+        {PrintLine("You're not holding at least one of those objects!"); return;}
 
-      if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside"))
+      if (Obj[obj].loc != 2048 + OBJ_YOU)
+        {PrintLine("You're not holding at least one of those objects!"); return;}
+
+      exception[num_exceptions++] = obj;
+      if (num_exceptions == 80 || CurWord == NumStrWords) break;
+
+      if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside") || MatchCurWord("through"))
       {
-        put_flag = 1; //turn drop into put if not already
-
-        container = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (container <= 0) return;
-
-        if (container == FOBJ_SCENERY_NOTVIS || container == FOBJ_NOTVIS)
-        {
-          PrintLine("At least one of those objects isn't visible here!");
-          return;
-        }
-
-        if (container == OBJ_YOU || container >= NUM_OBJECTS)
-        {
-          PrintLine("You can't put anything into that.");
-          return;
-        }
-
-        if (IsObjVisible(container) == 0)
-        {
-          PrintObjectDesc(container, 0);
-          PrintText(": ");
-
-          PrintLine("You can't see that here.");
-
-          return;
-        }
-
-        if ((Obj[container].prop & PROP_OPEN) == 0 ||
-            (Obj[container].prop & PROP_ACTOR))
-        {
-          PrintObjectDesc(container, 0);
-          PrintText(": ");
-
-          if (Obj[container].prop & PROP_OPENABLE)
-          {
-            PrintLine("You need to open it first.");
-            ItObj = container;
-          }
-          else
-            PrintLine("You can't put anything into that!");
-
-          return;
-        }
-
+        CurWord--; //back up so in/into/inside/through can be processed below
         break;
       }
 
@@ -1713,64 +1563,204 @@ void ParseActionDropPut(int put_flag)
       }
 
       if (MatchCurWord("and") == 0)
-      {
-        PrintLine("Please use a comma or the word \"and\" between nouns.");
-        return;
-      }
+        {PrintLine("Please use a comma or the word \"and\" between nouns."); return;}
 
       for (;;) if (MatchCurWord("and") == 0) break; // handle repeated "and"s like "take one, two, and three"
     }
+  }
 
-    if (put_flag && container == 0)
+  //change "drop" to "put" (if not already) if container will be specified
+  if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside") || MatchCurWord("through"))
+  {
+    into_flag = 1;
+    put_flag = 1;
+  }
+  else into_flag = 0;
+
+  if (put_flag)
+  {
+    if (into_flag == 0)
+      {PrintLine("You need to specify a container."); return;}
+
+    container = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (container <= 0) return;
+
+    if (DropPutVerifyContainer(container)) return;
+  }
+
+  for (i=2; i<NUM_OBJECTS; i++)
+  {
+    obj = Obj[i].order;
+
+    if (Obj[obj].loc == 2048 + OBJ_YOU && obj != container)
     {
-      PrintLine("You need to specify a container.");
-      return;
-    }
-
-    for (i=0; i<num_drops; i++)
-    {
-      obj = drop[i];
-
-      if (obj == OBJ_YOU || obj >= NUM_OBJECTS)
+      for (j=0; j<num_exceptions; j++)  // look for obj in exception list
+        if (obj == exception[j]) break; // if obj is in exception list, break early
+      if (j == num_exceptions)          // if obj is not in exception list
       {
-        if (num_drops > 1)
-          PrintLine("You're not holding at least one of those objects!");
-        else
-          PrintLine("You're not holding that!");
-        return;
+        if (InterceptDropPutObj(obj, container, 1, 1) == -1) // first 1: test only
+          return;
       }
     }
+  }
 
-    for (i=0; i<num_drops; i++)
+  prev_darkness = IsPlayerInDarkness();
+
+  nothing_dropped = 1;
+
+  for (;;)
+  {
+    for (i=2; i<NUM_OBJECTS; i++)
     {
-      obj = drop[i];
+      obj = Obj[i].order;
 
-      if (num_drops > 1)
+      if (Obj[obj].loc == 2048 + OBJ_YOU && obj != container)
       {
-        PrintObjectDesc(obj, 0);
-        PrintText(": ");
-      }
-
-      if (Obj[obj].loc != 2048 + OBJ_YOU)
-        PrintLine("You're not holding that!");
-      else if (obj == container)
-        PrintLine("But it would disappear from reality!");
-      else
-      {
-        if (put_flag && GetTotalSizeInLocation(2048 + container) + Obj[obj].size > Obj[container].capacity)
-          PrintLine("It won't hold any more!");
-        else
+        for (j=0; j<num_exceptions; j++)  // look for obj in exception list
+          if (obj == exception[j]) break; // if obj is in exception list, break early
+        if (j == num_exceptions)          // if obj is not in exception list
         {
-          Obj[obj].loc = put_flag ? 2048 + container : Obj[OBJ_YOU].loc;
+          // caution: if obj doesn't leave inventory here, or function return, outer loop will never end
 
-          MoveObjOrderToLast(obj);
+          nothing_dropped = 0;
 
-          PrintLine("Okay.");
+          if (InterceptDropPutObj(obj, container, 0, 1) == 0) // first 0: not a test
+          {
+            PrintObjectDesc(obj, 0);
+            PrintText(": ");
+			  
+            if (put_flag &&
+                GetTotalSizeInLocation(2048 + container) + Obj[obj].size > Obj[container].capacity)
+              {PrintLine("It won't hold any more!"); return;}
+			  
+            Obj[obj].loc = put_flag ? 2048 + container : Obj[OBJ_YOU].loc;
+            MoveObjOrderToLast(obj);
+            PrintLine("Okay.");
+            TimePassed = 1;
+          }
 
-          TimePassed = 1;
+          break; // break inner loop early to cause outer loop to repeat for any remaining objects
         }
       }
     }
+    if (i == NUM_OBJECTS) break; // break outer loop if inner loop was not broken above
+  }
+
+  if (nothing_dropped)
+  {
+    if (put_flag)
+      PrintLine("There was nothing to put into it.");
+    else
+      PrintLine("There was nothing to drop.");
+  }
+
+  if (IsPlayerInDarkness() != prev_darkness)
+  {
+    PrintBlankLine();
+    PrintPlayerRoomDesc(1);
+  }
+}
+
+
+
+void ParseActionDropPut(int put_flag)
+{
+  int obj, i, num_drops, container, prev_darkness;
+  unsigned short drop[80]; //stores objects to be dropped
+
+  if (MatchCurWord("all") || MatchCurWord("everything"))
+    {DropPutAllRoutine(put_flag); return;}
+
+  container = 0;
+  num_drops = 0;
+
+  for (;;)
+  {
+    obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
+
+    drop[num_drops++] = obj;
+    if (num_drops == 80 || CurWord == NumStrWords) break;
+
+    if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside") || MatchCurWord("through"))
+    {
+      put_flag = 1; //turn drop into put if not already
+
+      container = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (container <= 0) return;
+
+      if (DropPutVerifyContainer(container)) return;
+
+      break;
+    }
+
+    if (MatchCurWord("then"))
+    {
+      CurWord--; //end of this turn's command; back up so "then" can be matched later
+      break;
+    }
+
+    if (MatchCurWord("and") == 0)
+      {PrintLine("Please use a comma or the word \"and\" between nouns."); return;}
+
+    for (;;) if (MatchCurWord("and") == 0) break; // handle repeated "and"s like "take one, two, and three"
+  }
+
+  if (put_flag && container == 0)
+    {PrintLine("You need to specify a container."); return;}
+
+  for (i=0; i<num_drops; i++)
+  {
+    obj = drop[i];
+
+    if (obj == OBJ_YOU || obj >= NUM_OBJECTS)
+    {
+      if (num_drops > 1)
+        PrintLine("You're not holding at least one of those objects!");
+      else
+        PrintLine("You're not holding that!");
+      return;
+    }
+
+    if (InterceptDropPutObj(obj, container, 1, (num_drops > 1)) == -1) // first 1: test only
+      return;
+  }
+
+  prev_darkness = IsPlayerInDarkness();
+
+  for (i=0; i<num_drops; i++)
+  {
+    obj = drop[i];
+
+    if (Obj[obj].loc != 2048 + OBJ_YOU)
+    {
+      if (num_drops > 1)
+        {PrintObjectDesc(obj, 0); PrintText(": ");}
+      PrintLine("You're not holding that!");
+    }
+    else if (obj == container)
+    {
+      if (num_drops > 1)
+        {PrintObjectDesc(obj, 0); PrintText(": ");}
+      PrintLine("But it would disappear from reality!");
+    }
+    else if (InterceptDropPutObj(obj, container, 0, (num_drops > 1)) == 0) // first 0: not a test
+    {
+      if (num_drops > 1)
+        {PrintObjectDesc(obj, 0); PrintText(": ");}
+      if (put_flag && GetTotalSizeInLocation(2048 + container) + Obj[obj].size > Obj[container].capacity)
+        PrintLine("It won't hold any more!");
+      else
+      {
+        Obj[obj].loc = put_flag ? 2048 + container : Obj[OBJ_YOU].loc;
+        MoveObjOrderToLast(obj);
+        PrintLine("Okay.");
+        TimePassed = 1;
+      }
+    }
+  }
+
+  if (IsPlayerInDarkness() != prev_darkness)
+  {
+    PrintBlankLine();
+    PrintPlayerRoomDesc(1);
   }
 }
 

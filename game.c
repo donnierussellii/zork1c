@@ -2130,6 +2130,8 @@ void DoMiscGiveTo_give_thief(int obj)
   }
 
   Obj[obj].loc = 2048 + OBJ_THIEF;
+  Obj[obj].prop |= PROP_NODESC;
+  Obj[obj].prop |= PROP_NOTTAKEABLE;
 
   if (obj == OBJ_STILETTO)
     PrintLine("The thief takes his stiletto and salutes you with a small nod of his head.");
@@ -2154,7 +2156,12 @@ void DoMiscGiveTo_give_troll(int obj)
   if (obj == OBJ_AXE)
   {
     PrintLine("The troll scratches his head in confusion, then takes the axe.");
-    Obj[obj].loc = 2048 + OBJ_TROLL;
+
+    Obj[OBJ_AXE].loc = 2048 + OBJ_TROLL;
+    Obj[OBJ_AXE].prop |= PROP_NODESC;
+    Obj[OBJ_AXE].prop |= PROP_NOTTAKEABLE;
+    Obj[OBJ_AXE].prop &= ~PROP_WEAPON;
+
     VillainAttacking[VILLAIN_TROLL] = 1;
   }
   else
@@ -3615,6 +3622,47 @@ void DoMisc_squeeze_tube(void)
 
 
 
+void DoMisc_examine_raised_basket(void)
+{
+  PrintContents(OBJ_RAISED_BASKET, "It contains:", 1);
+}
+
+
+
+void DoMisc_examine_lowered_basket(void)
+{
+  PrintLine("The basket is at the other end of the shaft.");
+}
+
+
+
+void DoMisc_lookin_large_bag(void)
+{
+  if (ThiefDescType == 1) // unconcious
+    PrintLine("The bag is underneath the thief, so one can't say what, if anything, is inside.");
+  else
+    PrintLine("Getting close enough would be a good trick.");
+}
+
+
+
+void DoMisc_lookthrough_grate(void)
+{
+  if (Obj[OBJ_YOU].loc == ROOM_GRATING_CLEARING)
+    PrintLine("You see darkness below.");
+  else
+    PrintLine("You see trees above you.");
+}
+
+
+
+void DoMisc_lookin_water(void)
+{
+  PrintLine("It's clear and might be potable.");
+}
+
+
+
 struct DOMISC_STRUCT DoMisc[] =
 {
   { A_OPEN         , FOBJ_KITCHEN_WINDOW  , DoMisc_open_kitchen_window         },
@@ -3766,6 +3814,14 @@ struct DOMISC_STRUCT DoMisc[] =
   { A_LOOKIN       , OBJ_TRUNK            , DoMisc_lookin_trunk                },
   { A_EXAMINE      , OBJ_TRUNK            , DoMisc_lookin_trunk                },
   { A_SQUEEZE      , OBJ_TUBE             , DoMisc_squeeze_tube                },
+  { A_EXAMINE      , OBJ_RAISED_BASKET    , DoMisc_examine_raised_basket       },
+  { A_EXAMINE      , OBJ_LOWERED_BASKET   , DoMisc_examine_lowered_basket      },
+  { A_LOOKIN       , OBJ_LARGE_BAG        , DoMisc_lookin_large_bag            },
+  { A_EXAMINE      , OBJ_LARGE_BAG        , DoMisc_lookin_large_bag            },
+  { A_LOOKTHROUGH  , FOBJ_GRATE           , DoMisc_lookthrough_grate           },
+  { A_LOOKIN       , FOBJ_GRATE           , DoMisc_lookthrough_grate           },
+  { A_EXAMINE      , OBJ_WATER            , DoMisc_lookin_water                },
+  { A_LOOKIN       , OBJ_WATER            , DoMisc_lookin_water                },
 
   { 0, 0, 0 }
 };
@@ -4276,6 +4332,143 @@ int InterceptTakeFixedObj(int obj)
 
   return 0;
 }
+
+
+
+int InterceptTakeOutOf(int container)
+{
+  switch (container)
+  {
+    case OBJ_LARGE_BAG:
+    {
+      PrintLine("It would be a good trick.");
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+
+
+// test flag:  1 if no changes should be made (yet)
+// multi flag: 1 if obj name should be printed
+
+// returns:
+//   1:  intercepted, and obj MUST leave inventory, unless container is full
+//  -1:  intercepted and calling function should immediately return
+
+int InterceptDropPutObj(int obj, int container, int test, int multi)
+{
+  switch (container)
+  {
+    case OBJ_LOWERED_BASKET:
+    {
+      if (multi) {PrintObjectDesc(obj, 0); PrintText(": ");}
+      PrintLine("The basket is at the other end of the shaft.");
+      return -1;
+    }
+
+    case OBJ_CHALICE:
+    {
+      if (multi) {PrintObjectDesc(obj, 0); PrintText(": ");}
+      PrintLine("You can't. It's not a very good chalice, is it?");
+      return -1;
+    }
+
+    case OBJ_LARGE_BAG:
+    {
+      if (multi) {PrintObjectDesc(obj, 0); PrintText(": ");}
+      PrintLine("It would be a good trick.");
+      return -1;
+    }
+
+    case FOBJ_GRATE:
+    {
+      if (Obj[obj].size > 20)
+      {
+        if (multi) {PrintObjectDesc(obj, 0); PrintText(": ");}
+        PrintLine("It won't fit through the grating.");
+        return -1;
+      }
+      else if (Obj[OBJ_YOU].loc != ROOM_GRATING_CLEARING)
+      {
+        if (multi) {PrintObjectDesc(obj, 0); PrintText(": ");}
+        PrintLine("It won't go through.");
+        return -1;
+      }    
+
+      if (test == 0)
+      {
+        if (multi) {PrintObjectDesc(obj, 0); PrintText(": ");}
+        PrintLine("It goes through the grating into the darkness below.");
+
+        Obj[obj].loc = ROOM_GRATING_ROOM;
+        TimePassed = 1;
+      }
+
+      return 1;
+    }
+
+    case FOBJ_SLIDE:
+    {
+      if (test == 0)
+      {
+        if (multi) {PrintObjectDesc(obj, 0); PrintText(": ");}
+        if (Obj[OBJ_YOU].loc == ROOM_SLIDE_ROOM)
+          PrintLine("It falls into the slide and is gone.");
+        else
+          PrintLine("It falls into the slide.");
+  
+        Obj[obj].loc = ROOM_CELLAR;
+        TimePassed = 1;
+      }
+
+      return 1;
+    }
+
+    case FOBJ_RIVER:
+    case OBJ_WATER:
+    {
+      if ((Room[Obj[OBJ_YOU].loc].prop & R_WATERHERE) == 0)
+      {
+        if (multi) {PrintObjectDesc(obj, 0); PrintText(": ");}
+        PrintLine("There isn't any water here!");
+        return -1;
+      }
+
+      if (obj == OBJ_INFLATED_BOAT)
+      {
+        if (multi) {PrintObjectDesc(obj, 0); PrintText(": ");}
+        PrintLine("You should get in the boat then launch it.");
+        return -1;
+      }
+
+      if (test == 0)
+      {
+        if (multi) {PrintObjectDesc(obj, 0); PrintText(": ");}
+        if (Obj[obj].prop & PROP_INFLAMMABLE)
+          PrintLine("It floats for a moment, then sinks.");
+        else
+          PrintLine("It splashes into the water and is gone forever.");
+
+        Obj[obj].loc = 0;
+        TimePassed = 1;
+      }
+
+      return 1;
+    }
+  }
+
+  if (container >= NUM_OBJECTS)
+  {
+    PrintLine("You can't put anything into that!");
+    return -1;
+  }
+
+  return 0;
+}
+
 //*****************************************************************************
 
 
@@ -5266,10 +5459,14 @@ void InitGameState(void)
   Obj[OBJ_TUBE           ].prop |= PROP_OPENABLE;
 
   Obj[OBJ_RAISED_BASKET  ].prop |= PROP_OPEN;
+  Obj[OBJ_LOWERED_BASKET ].prop |= PROP_OPEN;
   Obj[OBJ_INFLATED_BOAT  ].prop |= PROP_OPEN;
   Obj[OBJ_NEST           ].prop |= PROP_OPEN;
+  Obj[OBJ_LARGE_BAG      ].prop |= PROP_OPEN;
+  Obj[OBJ_CHALICE        ].prop |= PROP_OPEN;
   Obj[OBJ_THIEF          ].prop |= PROP_OPEN;
   Obj[OBJ_TROLL          ].prop |= PROP_OPEN;
+  Obj[OBJ_WATER          ].prop |= PROP_OPEN;
 
   Obj[OBJ_TORCH          ].prop |= PROP_LIT;
   Obj[OBJ_CANDLES        ].prop |= PROP_LIT;
@@ -5305,6 +5502,19 @@ void InitGameState(void)
   Obj[OBJ_SHOVEL         ].prop |= PROP_TOOL;
   Obj[OBJ_PUTTY          ].prop |= PROP_TOOL;
   Obj[OBJ_WRENCH         ].prop |= PROP_TOOL;
+
+  Obj[OBJ_LEAVES         ].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_BOOK           ].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_SANDWICH_BAG   ].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_ADVERTISEMENT  ].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_INFLATED_BOAT  ].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_PAINTING       ].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_PUNCTURED_BOAT ].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_INFLATABLE_BOAT].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_COAL           ].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_BOAT_LABEL     ].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_GUIDE          ].prop |= PROP_INFLAMMABLE;
+  Obj[OBJ_NEST           ].prop |= PROP_INFLAMMABLE;
 
   ItObj = OBJ_MAILBOX;
 }

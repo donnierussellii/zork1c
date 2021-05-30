@@ -64,6 +64,7 @@
 #define PROP_WEAPON        512
 #define PROP_ACTOR        1024
 #define PROP_TOOL         2048
+#define PROP_INFLAMMABLE  4096
 
 
 
@@ -444,6 +445,8 @@ int ActionDirectionRoutine(int newroom);
 int InterceptAction(int action);
 int InterceptTakeObj(int obj);
 int InterceptTakeFixedObj(int obj);
+int InterceptTakeOutOf(int container);
+int InterceptDropPutObj(int obj, int container, int test, int multi);
 void RunEventRoutines(void);
 int CountLoot(void);
 int GetScore(void);
@@ -462,7 +465,7 @@ void VillainsRoutine(void);
 void PlayerBlow(int obj, int player_weapon);
 void ThiefProtectsTreasure(void);
 
-//compression.c
+//compress.c
 int GetDecompressTextSize(char *text_in, int size_in);
 int DecompressText(char *text_in, int size_in, char *text_out);
 
