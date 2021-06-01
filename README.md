@@ -11,4 +11,5 @@ You are welcome to use this source code to develop your own works,
 but the story-related content belongs to the original authors of Zork.
 
 Currently working on:
-Throwing things;
+
+Containers and Surfaces
