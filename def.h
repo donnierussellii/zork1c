@@ -22,7 +22,7 @@
 
 #define NUM_ROOMS  111 //including null room 0
 
-#define NUM_OBJECTS  76
+#define NUM_OBJECTS  80
 
 #define SCORE_MAX  350
 
@@ -30,11 +30,15 @@
 
 #define LOAD_MAX  100
 
-#define MAX_INVENTORY_ITEMS    7
-#define INV_LIMIT_CHANCE  8
+#define MAX_INVENTORY_ITEMS  7
+#define INV_LIMIT_CHANCE     8
 
 #define STRENGTH_MIN  2
 #define STRENGTH_MAX  7
+
+
+
+#define INSIDE  2048
 
 
 
@@ -65,6 +69,7 @@
 #define PROP_ACTOR        1024
 #define PROP_TOOL         2048
 #define PROP_INFLAMMABLE  4096
+#define PROP_SURFACE      8192
 
 
 
@@ -118,12 +123,14 @@ enum
   A_ATTACK,
   A_BREAK,
   A_BRIEF,
+  A_BRUSH,
   A_CLIMB,
   A_CLIMBDOWN,
   A_CLIMBTHROUGH,
   A_CLIMBUP,
   A_CLOSE,
   A_COUNT,
+  A_CROSS,
   A_DEACTIVATE,
   A_DEFLATE,
   A_DIAGNOSE,
@@ -138,18 +145,19 @@ enum
   A_ENTER,
   A_EXAMINE,
   A_EXIT,
+  A_EXORCISE,
   A_FILL,
   A_FIX,
   A_GIVE,
   A_GO,
+  A_GREET,
   A_INFLATE,
   A_INVENTORY,
   A_JUMP,
-  A_JUMPINTO,
-  A_JUMPOVER,
   A_KNOCK,
   A_LAND,
   A_LAUNCH,
+  A_LISTENTO,
   A_LOCK,
   A_LOOK,
   A_LOOKBEHIND,
@@ -164,12 +172,12 @@ enum
   A_OIL,
   A_OPEN,
   A_PLAY,
+  A_POUR,
   A_PRAY,
   A_PRY,
   A_PULL,
   A_PUSH,
   A_PUT,
-  A_PUTON, // not as in wearing
   A_QUIT,
   A_RAISE,
   A_READ,
@@ -178,16 +186,19 @@ enum
   A_RESTORE,
   A_RING,
   A_SAVE,
+  A_SAY,
   A_SCORE,
   A_SLEEP,
   A_SLEEPON,
   A_SLIDEDOWN,
   A_SLIDEUP,
+  A_SMELL,
   A_SQUEEZE,
   A_SUPERBRIEF,
   A_SWIM,
   A_TAKE,
-  A_TAKEOFF, // not as in wearing
+  A_TALKTO,
+  A_THROW,
   A_TIE,
   A_TOUCH,
   A_TURN,
@@ -198,6 +209,7 @@ enum
   A_WAIT,
   A_WAVE,
   A_WEAR,
+  A_WHEREIS,
   A_WIND
 };
 
@@ -239,8 +251,6 @@ enum
   FOBJ_BOLT,
   FOBJ_BUBBLE,
   FOBJ_ALTAR,
-  FOBJ_KITCHEN_TABLE,
-  FOBJ_ATTIC_TABLE,
   FOBJ_YELLOW_BUTTON,
   FOBJ_BROWN_BUTTON,
   FOBJ_RED_BUTTON,
@@ -265,7 +275,11 @@ enum
   FOBJ_GRANITE_WALL,
   FOBJ_CHAIN,
   FOBJ_GATE,
-  FOBJ_STUDIO_DOOR
+  FOBJ_STUDIO_DOOR,
+  FOBJ_CHASM,
+  FOBJ_LAKE,
+  FOBJ_STREAM,
+  FOBJ_GAS
 };
 
 
@@ -300,13 +314,13 @@ struct ROOM_PASSAGES_STRUCT
 struct OBJ_STRUCT
 {
   const unsigned short init_loc;
-  unsigned short      loc;
+  unsigned short            loc;
   const unsigned short size;
   const unsigned short capacity;
   unsigned short order;
   unsigned short prop;
-  const unsigned char  init_thiefvalue;
-  unsigned char       thiefvalue;
+  const unsigned char init_thiefvalue;
+  unsigned char            thiefvalue;
 };
 
 
@@ -421,9 +435,11 @@ void GetWords(char *prompt);
 int IsObjVisible(int obj);
 int IsPlayerInDarkness(void);
 int GetNumObjectsInLocation(int loc);
+void MoveObjOrderToLast(int obj);
 void PrintPlayerRoomDesc(int force_description);
 void PrintPresentObjects(int location, char *heading, int list_flag);
 int MatchCurWord(const char *match);
+int GetAllObjFromInput(int room);
 int TakeRoutine(int obj, char *msg);
 int GetWith(void);
 
@@ -441,12 +457,18 @@ void DoVersion(void);
 void DoDiagnose(void);
 void DoOdysseus(void);
 void DoSwim(void);
+void DoCommandActor(int obj);
+void DoTalkTo(void);
+void DoGreet(void);
+void DoSay(void);
 int ActionDirectionRoutine(int newroom);
 int InterceptAction(int action);
 int InterceptTakeObj(int obj);
+int GetPlayersVehicle(void);
 int InterceptTakeFixedObj(int obj);
 int InterceptTakeOutOf(int container);
 int InterceptDropPutObj(int obj, int container, int test, int multi);
+void ThrowObjRoutine(int obj, int to);
 void RunEventRoutines(void);
 int CountLoot(void);
 int GetScore(void);
@@ -461,6 +483,7 @@ void InitGameState(void);
 int PlayerFightStrength(int adjust);
 void ThiefRecoverStiletto(void);
 void VillainDead(int i);
+void VillainConscious(int i);
 void VillainsRoutine(void);
 void PlayerBlow(int obj, int player_weapon);
 void ThiefProtectsTreasure(void);

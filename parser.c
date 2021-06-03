@@ -8,9 +8,11 @@
 
 
 
+#ifndef NO_STATUS_LINE
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#endif
 #endif
 
 
@@ -24,6 +26,7 @@ FILE *InputStream;
 
 #ifndef NO_STATUS_LINE
 int VTMode;
+char StatusLineText[80];
 #endif
 
 int CursorColumn;
@@ -47,10 +50,6 @@ int ItObj, PrevItObj; //the obj "it" refers to
 char *StrAnd = "and";   //point to this string when comma is encountered in input
 char *StrThen = "then"; //point to this string when period is encountered in input
 
-#ifndef NO_STATUS_LINE
-char StatusLineText[80];
-#endif
-
 unsigned char TimePassed; //flag: time passed during action
 unsigned char GameOver; //flag, but with special value 2: restart was requested
 
@@ -63,6 +62,7 @@ extern int LoadAllowed;
 extern struct GOFROM_STRUCT GoFrom[];
 extern struct DOMISCWITH_STRUCT DoMiscWithTo[];
 extern struct DOMISCTO_STRUCT DoMiscGiveTo[];
+extern struct DOMISCTO_STRUCT DoMiscThrowTo[];
 extern struct DOMISC_STRUCT DoMisc[];
 extern struct OVERRIDEROOMDESC_STRUCT OverrideRoomDesc[];
 extern struct OVERRIDEOBJECTDESC_STRUCT OverrideObjectDesc[];
@@ -409,31 +409,47 @@ void GetWords(char *prompt)
 
 //*****************************************************************************
 
-//call only for:  OBJ_YOU < obj < NUM_OBJECTS
-
-//objects inside containers are only visible one level deep
+// function can call itself
 
 int IsObjVisible(int obj)
 {
-  if (Obj[obj].prop & PROP_EVERYWHERE) return 1; //presence must be checked by calling function
+  if (obj < 2 || obj >= NUM_OBJECTS) return 0;
 
-  if (Obj[obj].loc == 2048 + OBJ_YOU) return 1;   //obj is in your inventory
-  if (Obj[obj].loc == Obj[OBJ_YOU].loc) return 1; //obj is in same room as you
-  if (Obj[obj].loc >= 2048) //obj is inside something
+  if (Obj[obj].prop & PROP_EVERYWHERE) return 1; // presence must be checked by calling function
+
+  if (Obj[obj].loc == INSIDE + OBJ_YOU) return 1;   // obj is in your inventory
+  if (Obj[obj].loc == Obj[OBJ_YOU].loc) return 1; // obj is in same room as you
+
+  if (Obj[obj].loc >= INSIDE) // obj is inside container
   {
-    int container;
+    int container = Obj[obj].loc - INSIDE;
 
-    container = Obj[obj].loc - 2048; //obj is inside container
-    if (Obj[container].prop & PROP_OPEN) //container is open
-    {
-      if (Obj[container].loc == 2048 + OBJ_YOU) return 1;   //container is in your inventory
-      if (Obj[container].loc == Obj[OBJ_YOU].loc) return 1; //container is in same room as you
-    }
+    if (Obj[container].prop & PROP_OPEN) // container is open
+      if (IsObjVisible(container)) return 1; // yikes it's recursive
   }
+
   return 0;
 }
 
 
+
+// assumes player is not an actor
+
+int IsObjCarriedByActor(int obj)
+{
+  int container = Obj[obj].loc - INSIDE; // get obj's container, if any
+
+  if (container > 1 && container < NUM_OBJECTS)
+    if (Obj[container].prop & PROP_ACTOR)
+      return 1;
+
+  return 0;
+}
+
+
+
+// a lighted object carried by an actor will light the room if the actor is "open";
+// therefore exclude such objects
 
 int IsPlayerInDarkness(void)
 {
@@ -446,7 +462,11 @@ int IsPlayerInDarkness(void)
   for (i=2; i<NUM_OBJECTS; i++)
   {
     obj = Obj[i].order;
-    if (IsObjVisible(obj) && (Obj[obj].prop & PROP_LIT)) return 0; // a lit obj is visible
+
+    if (IsObjVisible(obj) &&              
+        IsObjCarriedByActor(obj) == 0 &&  
+        (Obj[obj].prop & PROP_LIT))       
+      return 0; // obj is visible, not carried by actor, and lit
   }
 
   return 1;
@@ -515,7 +535,7 @@ void PrintContents(int obj, char *heading, int print_empty)
   {
     int obj_inside = Obj[i].order;
 
-    if ( Obj[obj_inside].loc == 2048 + obj &&
+    if ( Obj[obj_inside].loc == INSIDE + obj &&
          (Obj[obj_inside].prop & PROP_NODESC) == 0 &&
          !( (Obj[obj_inside].prop & PROP_INSIDEDESC) &&
             (Obj[obj_inside].prop & PROP_MOVEDDESC) == 0 ))
@@ -531,7 +551,7 @@ void PrintContents(int obj, char *heading, int print_empty)
   {
     int obj_inside = Obj[i].order;
 
-    if ( Obj[obj_inside].loc == 2048 + obj &&
+    if ( Obj[obj_inside].loc == INSIDE + obj &&
          (Obj[obj_inside].prop & PROP_NODESC) == 0 &&
          ( (Obj[obj_inside].prop & PROP_INSIDEDESC) &&
            (Obj[obj_inside].prop & PROP_MOVEDDESC) == 0 ))
@@ -566,13 +586,13 @@ void PrintPresentObjects(int location, char *heading, int list_flag)
       {
         flag = 1;
 
-        if (location == 2048 + OBJ_YOU)
+        if (location == INSIDE + OBJ_YOU)
           PrintLine("You're carrying:");
         else if (heading != 0)
           PrintLine(heading);
       }
 
-      if (location == 2048 + OBJ_YOU || list_flag)
+      if (location == INSIDE + OBJ_YOU || list_flag)
         PrintObjectDesc(obj, 0);
       else
         PrintObjectDesc(obj, 1);
@@ -585,7 +605,7 @@ void PrintPresentObjects(int location, char *heading, int list_flag)
     }
   }
 
-  if (location == 2048 + OBJ_YOU && flag == 0) PrintLine("You're not carrying anything.");
+  if (location == INSIDE + OBJ_YOU && flag == 0) PrintLine("You're not carrying anything.");
 }
 //*****************************************************************************
 
@@ -615,7 +635,7 @@ void PrintRoomDesc(int room, int force_description)
     }
 #endif
 
-    PrintLine(p); //print room name
+    PrintLine(p); // print room name
   }
 
   if (force_description || Verbosity != V_SUPERBRIEF)
@@ -1200,9 +1220,7 @@ int TakeOutOfRoutine(int *container)
   if (IsObjVisible(*container) == 0)
   {
     PrintObjectDesc(*container, 0);
-    PrintText(": ");
-
-    PrintLine("You can't see that here.");
+    PrintLine(": You can't see that here.");
     return 1;
   }
 
@@ -1267,12 +1285,23 @@ int VerifyTakeableObj(int obj, int container, int num_takes)
     return 1;
   }
 
-  if (container != 0 && Obj[obj].loc != 2048 + container)
+  if (GetPlayersVehicle() == obj)
   {
     PrintObjectDesc(obj, 0);
-    PrintText(": ");
+    PrintLine(": You'll have to get out of it first!");
+    return 1;
+  }
 
-    PrintLine("That's not inside of it.");
+  if (container != 0 &&
+      Obj[obj].loc != INSIDE + container &&
+      container != GetPlayersVehicle())
+  {
+    PrintObjectDesc(obj, 0);
+
+    if (Obj[container].prop & PROP_SURFACE)
+      PrintLine(": That's not on it.");
+    else
+      PrintLine(": That's not inside of it.");
 
     return 1;
   }
@@ -1290,11 +1319,16 @@ int TakeRoutine(int obj, char *msg)
 
   if (InterceptTakeObj(obj)) return 1;
 
+  // act as if obj is not present when it is not takeable AND is not described
+  if ((Obj[obj].prop & PROP_NOTTAKEABLE) &&
+      (Obj[obj].prop & PROP_NODESC))
+    {PrintLine("You can't see that here."); return 1;}
+
   if (Obj[obj].prop & PROP_NOTTAKEABLE)
     {PrintLine("You can't take that."); return 1;}
 
 
-  if (GetTotalSizeInLocation(2048 + OBJ_YOU) + Obj[obj].size > LoadAllowed)
+  if (GetTotalSizeInLocation(INSIDE + OBJ_YOU) + Obj[obj].size > LoadAllowed)
   {
     PrintText("Your load is too heavy");
     if (LoadAllowed < LOAD_MAX)
@@ -1304,7 +1338,7 @@ int TakeRoutine(int obj, char *msg)
     return 1;
   }
 
-  num = GetNumObjectsInLocation(2048 + OBJ_YOU);
+  num = GetNumObjectsInLocation(INSIDE + OBJ_YOU);
   chance = INV_LIMIT_CHANCE * num; if (chance > 100) chance = 100;
   if (num > MAX_INVENTORY_ITEMS && PercentChance(chance, -1))
   {
@@ -1316,10 +1350,43 @@ int TakeRoutine(int obj, char *msg)
   TimePassed = 1;
   PrintLine(msg);
 
-  Obj[obj].loc = 2048 + OBJ_YOU;
+  Obj[obj].loc = INSIDE + OBJ_YOU;
   Obj[obj].prop |= PROP_MOVEDDESC;
 
   MoveObjOrderToLast(obj);
+
+  return 0;
+}
+
+
+
+int VerifyTakeAllExceptObj(int obj)
+{
+  if (obj == FOBJ_SCENERY_NOTVIS || obj == FOBJ_NOTVIS)
+  {
+    PrintLine("At least one of those objects isn't visible here!");
+    return 1;
+  }
+  else if (obj == FOBJ_AMB)
+  {
+    PrintLine("You need to be more specific about at least one of those objects.");
+    return 1;
+  }
+  else if (obj == OBJ_YOU || obj >= NUM_OBJECTS)
+  {
+    PrintLine("At least one of those objects can't be taken!");
+    return 1;
+  }
+  else if (Obj[obj].loc == INSIDE + OBJ_YOU)
+  {
+    PrintLine("You're already holding at least one of those objects!");
+    return 1;
+  }
+  else if (IsObjVisible(obj) == 0)
+  {
+    PrintLine("At least one of those objects isn't visible here!");
+    return 1;
+  }
 
   return 0;
 }
@@ -1333,57 +1400,52 @@ void TakeAllRoutine(void)
   unsigned short take[80];      //stores objects to be taken by "take all"
 
   num_exceptions = 0;
+  container = 0;
 
-  if (MatchCurWord("but") || MatchCurWord("except"))
+  if (MatchCurWord("but") || MatchCurWord("except")) // take all except * (and ...) (from *)
   {
     MatchCurWord("for"); // skip "for" if it exists
-
     for (;;)
     {
       obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
+      if (VerifyTakeAllExceptObj(obj)) return;
+      exception[num_exceptions++] = obj; if (num_exceptions == 80 || CurWord == NumStrWords) break;
   
-      if (obj == FOBJ_SCENERY_NOTVIS || obj == FOBJ_NOTVIS)
-        {PrintLine("At least one of those objects isn't visible here!"); return;}
-  
-      if (obj == FOBJ_AMB)
-        {PrintLine("You need to be more specific about at least one of those objects."); return;}
-  
-      if (obj == OBJ_YOU || obj >= NUM_OBJECTS)
-        {PrintLine("At least one of those objects can't be taken!"); return;}
-  
-      if (Obj[obj].loc == 2048 + OBJ_YOU)
-        {PrintLine("You're already holding at least one of those objects!"); return;}
-  
-      if (IsObjVisible(obj) == 0)
-        {PrintLine("At least one of those objects isn't visible here!"); return;}
-  
-      exception[num_exceptions++] = obj;
-      if (num_exceptions == 80 || CurWord == NumStrWords) break;
-  
-      if (MatchCurWord("from") || MatchCurWord("out"))
+      if (MatchCurWord("from") || MatchCurWord("out") || MatchCurWord("off"))
       {
-        if (MatchCurWord("of")) CurWord--;
-        CurWord--;                         //back up so from/out (of) can be processed below
+        if (TakeOutOfRoutine(&container)) return;
         break;
       }
   
-      if (MatchCurWord("then"))
-      {
-        CurWord--; //end of this turn's command; back up so "then" can be matched later
-        break;
-      }
-  
+      if (MatchCurWord("then")) {CurWord--; break;} //end of this turn's command; back up so "then" can be matched later
       if (MatchCurWord("and") == 0)
         {PrintLine("Please use a comma or the word \"and\" between nouns."); return;}
-
       for (;;) if (MatchCurWord("and") == 0) break; // handle repeated "and"s like "take one, two, and three"
     }
   }
-
-  container = 0;
-
-  if (MatchCurWord("from") || MatchCurWord("out"))
+  else if (MatchCurWord("from") || MatchCurWord("out") || MatchCurWord("off")) // take all from * except * (and ...)
+  {
     if (TakeOutOfRoutine(&container)) return;
+
+    if (MatchCurWord("but") || MatchCurWord("except"))
+    {
+      MatchCurWord("for"); // skip "for" if it exists
+      for (;;)
+      {
+        obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
+        if (VerifyTakeAllExceptObj(obj)) return;
+        exception[num_exceptions++] = obj; if (num_exceptions == 80 || CurWord == NumStrWords) break;
+    
+        if (MatchCurWord("then")) {CurWord--; break;} //end of this turn's command; back up so "then" can be matched later
+        if (MatchCurWord("and") == 0)
+          {PrintLine("Please use a comma or the word \"and\" between nouns."); return;}
+        for (;;) if (MatchCurWord("and") == 0) break; // handle repeated "and"s like "take one, two, and three"
+      }
+    }
+  }
+
+  if (container == 0 && GetPlayersVehicle() != 0)
+    container = GetPlayersVehicle();
 
   num_takes = 0;
 
@@ -1391,7 +1453,8 @@ void TakeAllRoutine(void)
   {
     obj = Obj[i].order;
 
-    if (Obj[obj].loc == (container ? 2048 + container : Obj[OBJ_YOU].loc))
+    if (Obj[obj].loc == (container ? INSIDE + container : Obj[OBJ_YOU].loc) &&
+        (Obj[obj].prop & PROP_NOTTAKEABLE) == 0)
     {
       for (j=0; j<num_exceptions; j++)
         if (obj == exception[j]) break;
@@ -1437,7 +1500,7 @@ void ParseActionTake(void)
     take[num_takes++] = obj;
     if (num_takes == 80 || CurWord == NumStrWords) break;
 
-    if (MatchCurWord("from") || MatchCurWord("out"))
+    if (MatchCurWord("from") || MatchCurWord("out") || MatchCurWord("off"))
     {
       if (TakeOutOfRoutine(&container)) return;
       break;
@@ -1455,6 +1518,9 @@ void ParseActionTake(void)
     for (;;) if (MatchCurWord("and") == 0) break; // handle repeated "and"s like "take one, two, and three"
   }
 
+  if (container == 0 && GetPlayersVehicle() != 0)
+    container = GetPlayersVehicle();
+
   for (i=0; i<num_takes; i++)
     if (VerifyTakeableObj(take[i], container, num_takes)) return;
 
@@ -1468,7 +1534,7 @@ void ParseActionTake(void)
       PrintText(": ");
     }
 
-    if (Obj[obj].loc == 2048 + OBJ_YOU)
+    if (Obj[obj].loc == INSIDE + OBJ_YOU)
       PrintLine("You're already holding that!");
     else if (IsObjVisible(obj) == 0)
       PrintLine("You can't see that here.");
@@ -1527,71 +1593,105 @@ int DropPutVerifyContainer(int container)
 
 void DropPutAllRoutine(int put_flag)
 {
-  int i, j, obj, num_exceptions, nothing_dropped, into_flag, container, prev_darkness;
+  int i, j, obj, num_exceptions, nothing_dropped, into_flag, outside_flag, container, prev_darkness;
   unsigned short exception[80]; //stores objects not to be dropped/put by "drop/put all"
 
-  container = 0;
   num_exceptions = 0;
+  container = 0;
+  into_flag = 0;
+  outside_flag = 0;
 
   if (MatchCurWord("but") || MatchCurWord("except"))
   {
     MatchCurWord("for"); // skip "for" if it exists
-
     for (;;)
     {
       obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
-
       if (obj == OBJ_YOU || obj >= NUM_OBJECTS)
         {PrintLine("You're not holding at least one of those objects!"); return;}
-
-      if (Obj[obj].loc != 2048 + OBJ_YOU)
+      if (Obj[obj].loc != INSIDE + OBJ_YOU)
         {PrintLine("You're not holding at least one of those objects!"); return;}
+      exception[num_exceptions++] = obj; if (num_exceptions == 80 || CurWord == NumStrWords) break;
 
-      exception[num_exceptions++] = obj;
-      if (num_exceptions == 80 || CurWord == NumStrWords) break;
-
-      if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside") || MatchCurWord("through"))
+      if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside") || MatchCurWord("through") ||
+          MatchCurWord("on") || MatchCurWord("onto"))
+        into_flag = 1;
+      else if (MatchCurWord("outside"))
+        outside_flag = 1;
+      if (into_flag || outside_flag)
       {
-        CurWord--; //back up so in/into/inside/through can be processed below
+        put_flag = 1; // change "drop" to "put" (if not already)
+        container = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (container <= 0) return;
+        if (DropPutVerifyContainer(container)) return;
         break;
       }
 
-      if (MatchCurWord("then"))
-      {
-        CurWord--; //end of this turn's command; back up so "then" can be matched later
-        break;
-      }
-
+      if (MatchCurWord("then")) {CurWord--; break;} //end of this turn's command; back up so "then" can be matched later
       if (MatchCurWord("and") == 0)
         {PrintLine("Please use a comma or the word \"and\" between nouns."); return;}
-
       for (;;) if (MatchCurWord("and") == 0) break; // handle repeated "and"s like "take one, two, and three"
     }
   }
-
-  //change "drop" to "put" (if not already) if container will be specified
-  if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside") || MatchCurWord("through"))
+  else
   {
-    into_flag = 1;
-    put_flag = 1;
+    if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside") || MatchCurWord("through") ||
+        MatchCurWord("on") || MatchCurWord("onto"))
+      into_flag = 1;
+    else if (MatchCurWord("outside"))
+      outside_flag = 1;
+    if (into_flag || outside_flag)
+    {
+      put_flag = 1; // change "drop" to "put" (if not already)
+      container = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (container <= 0) return;
+      if (DropPutVerifyContainer(container)) return;
+
+      if (MatchCurWord("but") || MatchCurWord("except"))
+      {
+        MatchCurWord("for"); // skip "for" if it exists
+        for (;;)
+        {
+          obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
+          if (obj == OBJ_YOU || obj >= NUM_OBJECTS)
+            {PrintLine("You're not holding at least one of those objects!"); return;}
+          if (Obj[obj].loc != INSIDE + OBJ_YOU)
+            {PrintLine("You're not holding at least one of those objects!"); return;}
+          exception[num_exceptions++] = obj; if (num_exceptions == 80 || CurWord == NumStrWords) break;
+    
+          if (MatchCurWord("then")) {CurWord--; break;} //end of this turn's command; back up so "then" can be matched later
+          if (MatchCurWord("and") == 0)
+            {PrintLine("Please use a comma or the word \"and\" between nouns."); return;}
+          for (;;) if (MatchCurWord("and") == 0) break; // handle repeated "and"s like "take one, two, and three"
+        }
+      }
+    }
   }
-  else into_flag = 0;
 
   if (put_flag)
   {
-    if (into_flag == 0)
+    if (into_flag == 0 && outside_flag == 0)
       {PrintLine("You need to specify a container."); return;}
 
-    container = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (container <= 0) return;
+    if (outside_flag)
+    {
+      if (container != GetPlayersVehicle())
+        {PrintLine("You're not inside that."); return;}
 
-    if (DropPutVerifyContainer(container)) return;
+      put_flag = 0;
+      container = 0;
+    }
+  }
+
+  if (outside_flag == 0 && container == 0 && GetPlayersVehicle() != 0)
+  {
+    put_flag = 1;
+    container = GetPlayersVehicle();
   }
 
   for (i=2; i<NUM_OBJECTS; i++)
   {
     obj = Obj[i].order;
 
-    if (Obj[obj].loc == 2048 + OBJ_YOU && obj != container)
+    if (Obj[obj].loc == INSIDE + OBJ_YOU && obj != container)
     {
       for (j=0; j<num_exceptions; j++)  // look for obj in exception list
         if (obj == exception[j]) break; // if obj is in exception list, break early
@@ -1613,7 +1713,7 @@ void DropPutAllRoutine(int put_flag)
     {
       obj = Obj[i].order;
 
-      if (Obj[obj].loc == 2048 + OBJ_YOU && obj != container)
+      if (Obj[obj].loc == INSIDE + OBJ_YOU && obj != container)
       {
         for (j=0; j<num_exceptions; j++)  // look for obj in exception list
           if (obj == exception[j]) break; // if obj is in exception list, break early
@@ -1629,10 +1729,10 @@ void DropPutAllRoutine(int put_flag)
             PrintText(": ");
 			  
             if (put_flag &&
-                GetTotalSizeInLocation(2048 + container) + Obj[obj].size > Obj[container].capacity)
+                GetTotalSizeInLocation(INSIDE + container) + Obj[obj].size > Obj[container].capacity)
               {PrintLine("It won't hold any more!"); return;}
 			  
-            Obj[obj].loc = put_flag ? 2048 + container : Obj[OBJ_YOU].loc;
+            Obj[obj].loc = put_flag ? INSIDE + container : Obj[OBJ_YOU].loc;
             MoveObjOrderToLast(obj);
             PrintLine("Okay.");
             TimePassed = 1;
@@ -1648,7 +1748,12 @@ void DropPutAllRoutine(int put_flag)
   if (nothing_dropped)
   {
     if (put_flag)
-      PrintLine("There was nothing to put into it.");
+    {
+      if (Obj[container].prop & PROP_SURFACE)
+        PrintLine("There was nothing to put on it.");
+      else
+        PrintLine("There was nothing to put into it.");
+    }
     else
       PrintLine("There was nothing to drop.");
   }
@@ -1664,47 +1769,72 @@ void DropPutAllRoutine(int put_flag)
 
 void ParseActionDropPut(int put_flag)
 {
-  int obj, i, num_drops, container, prev_darkness;
+  int obj, i, num_drops, container, into_flag, outside_flag, prev_darkness;
   unsigned short drop[80]; //stores objects to be dropped
 
   if (MatchCurWord("all") || MatchCurWord("everything"))
     {DropPutAllRoutine(put_flag); return;}
 
   container = 0;
+  into_flag = 0;
+  outside_flag = 0;
   num_drops = 0;
 
   for (;;)
   {
     obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
-
     drop[num_drops++] = obj;
     if (num_drops == 80 || CurWord == NumStrWords) break;
 
-    if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside") || MatchCurWord("through"))
+    if (MatchCurWord("in") || MatchCurWord("into") || MatchCurWord("inside") || MatchCurWord("through") ||
+        MatchCurWord("on") || MatchCurWord("onto"))
     {
-      put_flag = 1; //turn drop into put if not already
+      put_flag = 1; // change "drop" to "put" (if not already)
+      into_flag = 1;
 
       container = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (container <= 0) return;
-
       if (DropPutVerifyContainer(container)) return;
 
       break;
     }
 
-    if (MatchCurWord("then"))
+    if (MatchCurWord("outside"))
     {
-      CurWord--; //end of this turn's command; back up so "then" can be matched later
+      put_flag = 1; // change "drop" to "put" (if not already)
+      outside_flag = 1;
+
+      container = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (container <= 0) return;
+      if (DropPutVerifyContainer(container)) return;
+
       break;
     }
 
+    if (MatchCurWord("then")) {CurWord--; break;} // end of this turn's command; back up so "then" can be matched later
     if (MatchCurWord("and") == 0)
       {PrintLine("Please use a comma or the word \"and\" between nouns."); return;}
-
     for (;;) if (MatchCurWord("and") == 0) break; // handle repeated "and"s like "take one, two, and three"
   }
 
-  if (put_flag && container == 0)
-    {PrintLine("You need to specify a container."); return;}
+  if (put_flag)
+  {
+    if (into_flag == 0 && outside_flag == 0)
+      {PrintLine("You need to specify a container."); return;}
+
+    if (outside_flag)
+    {
+      if (container != GetPlayersVehicle())
+        {PrintLine("You're not inside that."); return;}
+
+      put_flag = 0;
+      container = 0;
+    }
+  }
+
+  if (outside_flag == 0 && container == 0 && GetPlayersVehicle() != 0)
+  {
+    put_flag = 1;
+    container = GetPlayersVehicle();
+  }
 
   for (i=0; i<num_drops; i++)
   {
@@ -1729,7 +1859,7 @@ void ParseActionDropPut(int put_flag)
   {
     obj = drop[i];
 
-    if (Obj[obj].loc != 2048 + OBJ_YOU)
+    if (Obj[obj].loc != INSIDE + OBJ_YOU)
     {
       if (num_drops > 1)
         {PrintObjectDesc(obj, 0); PrintText(": ");}
@@ -1745,11 +1875,11 @@ void ParseActionDropPut(int put_flag)
     {
       if (num_drops > 1)
         {PrintObjectDesc(obj, 0); PrintText(": ");}
-      if (put_flag && GetTotalSizeInLocation(2048 + container) + Obj[obj].size > Obj[container].capacity)
+      if (put_flag && GetTotalSizeInLocation(INSIDE + container) + Obj[obj].size > Obj[container].capacity)
         PrintLine("It won't hold any more!");
       else
       {
-        Obj[obj].loc = put_flag ? 2048 + container : Obj[OBJ_YOU].loc;
+        Obj[obj].loc = put_flag ? INSIDE + container : Obj[OBJ_YOU].loc;
         MoveObjOrderToLast(obj);
         PrintLine("Okay.");
         TimePassed = 1;
@@ -1782,7 +1912,7 @@ int ValidateObject(int obj)
     return 1;
   }
 
-  if (obj > 0 && obj < NUM_OBJECTS && IsObjVisible(obj) == 0)
+  if (obj > 1 && obj < NUM_OBJECTS && IsObjVisible(obj) == 0)
   {
     PrintLine("At least one of those objects isn't visible here!");
     return 1;
@@ -1805,7 +1935,8 @@ void ParseActionWithTo(int action, char *match_hack, char *cant)
   if (match_hack != 0) MatchCurWord(match_hack); //skip specified word
 
   with_to = 0;
-  if (MatchCurWord("with") || MatchCurWord("using") || MatchCurWord("to") || MatchCurWord("from"))
+  if (MatchCurWord("with") || MatchCurWord("using") || MatchCurWord("to") || MatchCurWord("from") ||
+      MatchCurWord("on") || MatchCurWord("onto"))
   {
     with_to = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (with_to <= 0) return;
   }
@@ -1844,52 +1975,6 @@ int GetWith(void)
     {PrintLine("You aren't holding that!"); return -1;}
 
   return with;
-}
-
-
-
-// not as in wearing
-
-void ParseActionPutOn(void)
-{
-  int obj, surface;
-
-  obj = GetAllObjFromInput(Obj[OBJ_YOU].loc);
-  if (obj <= 0) return;
-  if (ValidateObject(obj)) return;
-
-  surface = 0;
-  if (MatchCurWord("on"))
-  {
-    surface = GetAllObjFromInput(Obj[OBJ_YOU].loc);
-    if (surface <= 0) return;
-  }
-  if (ValidateObject(surface)) return;
-
-  PrintLine("You don't need to place objects in that way.");
-}
-
-
-
-// not as in wearing
-
-void ParseActionTakeOff(void)
-{
-  int obj, surface;
-
-  obj = GetAllObjFromInput(Obj[OBJ_YOU].loc);
-  if (obj <= 0) return;
-  if (ValidateObject(obj)) return;
-
-  surface = 0;
-  if (MatchCurWord("off"))
-  {
-    surface = GetAllObjFromInput(Obj[OBJ_YOU].loc);
-    if (surface <= 0) return;
-  }
-  if (ValidateObject(surface)) return;
-
-  PrintLine("You don't need to specify what an item is sitting on.");
 }
 
 
@@ -2128,7 +2213,7 @@ void EmptyObj(int obj)
   {
     int obj_inside = Obj[i].order;
 
-    if (Obj[obj_inside].loc == 2048 + obj)
+    if (Obj[obj_inside].loc == INSIDE + obj)
     {
       flag = 1;
       TimePassed = 1;
@@ -2143,6 +2228,83 @@ void EmptyObj(int obj)
 
   if (flag == 0)
     PrintLine("It's already empty.");
+}
+
+
+
+void ParseActionWhereIs(void)
+{
+  int obj, i;
+
+  obj = GetAllObjFromInput(Obj[OBJ_YOU].loc);
+
+  if (obj <= 0) return;
+  else if (obj == FOBJ_SCENERY_NOTVIS || obj == FOBJ_NOTVIS)
+    {PrintLine("You find it."); return;}
+  else if (obj == FOBJ_AMB)
+    {PrintLine("You need to be more specific."); return;}
+
+  for (i=0; DoMisc[i].f != 0; i++)
+    if (DoMisc[i].action == A_WHEREIS && DoMisc[i].obj == obj)
+      {DoMisc[i].f(); return;}
+
+  if (obj == OBJ_YOU)
+    PrintLine("You're around here somewhere...");
+  else if (obj >= NUM_OBJECTS)
+    PrintLine("It's right here.");
+  else if (IsObjVisible(obj))
+  {
+    if (Obj[obj].loc == INSIDE + OBJ_YOU)
+      PrintLine("You have it.");
+    else
+      PrintLine("It's right here.");
+  }
+  else
+    PrintLine("Beats me.");
+}
+
+
+
+void ParseActionThrow(void)
+{
+  int obj, to, i;
+  char *prep[13] = { "across", "at", "from", "in", "inside", "into", "off", "out", "outside", "over", "to", "toward", "through" };
+
+  obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
+  to = 0;
+  for (i=0; i<13; i++)
+    if (MatchCurWord(prep[i])) break;
+  if (i < 13)
+  {
+    MatchCurWord("of"); // as in "throw ball out of park"
+    to = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (to <= 0) return;
+  }
+
+  if (obj == FOBJ_SCENERY_NOTVIS || obj == FOBJ_NOTVIS)
+    {PrintLine("At least one of those objects isn't visible here!"); return;}
+  else if (obj == FOBJ_AMB)
+    {PrintLine("You need to be more specific about at least one of those objects."); return;}
+  else if (obj == OBJ_YOU)
+    {PrintLine("Seriously?!"); return;}
+  else if (obj >= NUM_OBJECTS)
+    {PrintLine("You aren't holding that!"); return;}
+  else if (Obj[obj].loc != INSIDE + OBJ_YOU)
+    {PrintLine("You aren't holding that!"); return;}
+
+  if (to == FOBJ_SCENERY_NOTVIS || to == FOBJ_NOTVIS)
+    {PrintLine("At least one of those objects isn't visible here!"); return;}
+  else if (to == FOBJ_AMB)
+    {PrintLine("You need to be more specific about at least one of those objects."); return;}
+  else if (to == OBJ_YOU)
+    {PrintLine("Seriously?!"); return;}
+  else if (to > 0 && to < NUM_OBJECTS && IsObjVisible(to) == 0)
+    {PrintLine("At least one of those objects isn't visible here!"); return;}
+
+  for (i=0; DoMiscThrowTo[i].f != 0; i++)
+    if (DoMiscThrowTo[i].to == to)
+      {DoMiscThrowTo[i].f(obj); return;}
+
+  ThrowObjRoutine(obj, to);
 }
 
 
@@ -2163,7 +2325,6 @@ void PrintCantAction(int action)
     case A_REMOVE:       PrintLine("You aren't wearing that!");             break;
     case A_PLAY:         PrintLine("You can't play that!");                 break;
     case A_SLEEPON:      PrintLine("You can't sleep on that!");             break;
-    case A_JUMPINTO:     PrintLine("You can't jump into that!");            break;
     case A_RAISE:        PrintLine("You can't raise that.");                break;
     case A_LOWER:        PrintLine("You can't lower that.");                break;
     case A_ENTER:        PrintLine("You can't go inside that!");            break;
@@ -2177,6 +2338,10 @@ void PrintCantAction(int action)
     case A_SLIDEUP:      PrintLine("You can't slide up that!");             break;
     case A_SLIDEDOWN:    PrintLine("You can't slide down that!");           break;
     case A_CLIMBTHROUGH: PrintLine("You can't climb through that!");        break;
+    case A_LISTENTO:     PrintLine("It makes no sound.");                   break;
+    case A_CROSS:        PrintLine("You can't cross that!");                break;
+    case A_EXORCISE:     PrintLine("What a bizarre concept!");              break;
+    case A_SMELL:        PrintLine("It smells as you would expect.");       break;
 
     default:             PrintLine("That would be futile.");                break;
   }
@@ -2210,8 +2375,7 @@ void DoActionOnObject(int action)
     break;
   }
 
-  obj = GetAllObjFromInput(Obj[OBJ_YOU].loc);
-  if (obj <= 0) return;
+  obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
 
   switch (action)
   {
@@ -2225,15 +2389,15 @@ void DoActionOnObject(int action)
   if (obj == FOBJ_AMB)
     {PrintLine("You need to be more specific."); return;}
 
-  if (obj > 0 && obj < NUM_OBJECTS)
-  {
-    if (must_hold && obj == OBJ_YOU)
-      {PrintLine("Seriously?!"); return;}
+  if (must_hold && obj == OBJ_YOU)
+    {PrintLine("Seriously?!"); return;}
 
+  if (obj > 1 && obj < NUM_OBJECTS)
+  {
     if (IsObjVisible(obj) == 0)
       {PrintLine("You can't see that here."); return;}
 
-    if (must_hold && Obj[obj].loc != 2048 + OBJ_YOU)
+    if (must_hold && Obj[obj].loc != INSIDE + OBJ_YOU)
       {PrintLine("You aren't holding it."); return;}
   }
 
@@ -2247,7 +2411,7 @@ void DoActionOnObject(int action)
   if (obj == OBJ_YOU)
     {PrintLine("Seriously?!"); return;}
 
-  if (obj > 0 && obj < NUM_OBJECTS)
+  if (obj > 1 && obj < NUM_OBJECTS)
     switch (action)
   {
     case A_OPEN:   OpenObj(obj);   return;
@@ -2265,13 +2429,30 @@ void DoActionOnObject(int action)
 //*****************************************************************************
 void Parse(void)
 {
-  int action, i, temp, temp2;
+  int obj, action, i, temp, temp2;
 
   TimePassed = 0;
 
   if (CurWord == NumStrWords || MatchCurWord("then")) return;
 
   if (CurWord > 0 && Verbosity != V_SUPERBRIEF) PrintBlankLine(); //print blank line between turns
+
+
+  // "actor, command1 (then command2 ...)"
+  // match noun phrase instead of verb phrase here to see if player is talking to actor
+  // NOTES:
+  //   comma is represented by "and"
+  //   all following actions in input will be directed at actor
+
+  temp = CurWord;
+
+  obj = GetObjFromInput(); // note that this can return -1 (noun phrase not specific enough)
+
+  if (MatchCurWord("and") && obj > 1 && (Obj[obj].prop & PROP_ACTOR))
+    {DoCommandActor(obj); return;}
+
+  CurWord = temp;
+
 
   action = GetActionFromInput();
 
@@ -2290,26 +2471,25 @@ void Parse(void)
 
   temp = CurWord; SkipObjFromInput(Obj[OBJ_YOU].loc);
 
-  if (action == A_TURN && MatchCurWord("on" ))
-    action = A_ACTIVATE;   // "turn obj on"
+  if (action == A_TURN && MatchCurWord("on"))
+    action = A_ACTIVATE; // "turn obj on"
 
   if (action == A_TURN && MatchCurWord("off"))
     action = A_DEACTIVATE; // "turn obj off""
 
   if (action == A_TAKE && MatchCurWord("off"))
   {
+    MatchCurWord("of");
+    // if no obj is after "off (of)", change action to remove
     temp2 = CurWord; SkipObjFromInput(Obj[OBJ_YOU].loc);
-
-    if (temp2 == CurWord) action = A_REMOVE;  // "take obj off"
-    else                  action = A_TAKEOFF; // "take obj off obj2"
+    if (temp2 == CurWord) action = A_REMOVE; // "take obj off"
   }
 
   if (action == A_PUT && MatchCurWord("on"))
   {
+    // if no obj is after "on", change action to wear
     temp2 = CurWord; SkipObjFromInput(Obj[OBJ_YOU].loc);
-
-    if (temp2 == CurWord) action = A_WEAR;  // "put obj on"
-    else                  action = A_PUTON; // "put obj on obj2"
+    if (temp2 == CurWord) action = A_WEAR; // "put obj on"
   }
 
   CurWord = temp;
@@ -2400,15 +2580,15 @@ void Parse(void)
 
   switch (action)
   {
-    case A_INVENTORY: PrintPresentObjects(2048 + OBJ_YOU, 0, 0); return;
+    case A_INVENTORY: PrintPresentObjects(INSIDE + OBJ_YOU, 0, 0); return;
 
     case A_TAKE:    ParseActionTake();     return;
     case A_DROP:    ParseActionDropPut(0); return;
     case A_PUT:     ParseActionDropPut(1); return;
-    case A_PUTON:   ParseActionPutOn();    return; // not as in wearing
-    case A_TAKEOFF: ParseActionTakeOff();  return; // not as in wearing
     case A_EXAMINE: ParseActionExamine();  return;
     case A_GIVE:    ParseActionGive();     return;
+    case A_WHEREIS: ParseActionWhereIs();  return;
+    case A_THROW:   ParseActionThrow();    return;
 
     case A_DIG:     ParseActionWithTo(action, 0, "dig that!");     return;
     case A_LOCK:    ParseActionWithTo(action, 0, "lock that!");    return;
@@ -2422,6 +2602,8 @@ void Parse(void)
     case A_DEFLATE: ParseActionWithTo(action, 0, "deflate that!"); return;
     case A_FILL:    ParseActionWithTo(action, 0, "fill that!");    return;
     case A_ATTACK:  ParseActionWithTo(action, 0, "attack that!");  return;
+    case A_POUR:    ParseActionWithTo(action, 0, "pour that!");    return;
+    case A_BRUSH:   ParseActionWithTo(action, 0, "brush that!");   return;
 
     case A_JUMP:      DoJump();      return;
     case A_SLEEP:     DoSleep();     return;
@@ -2429,6 +2611,9 @@ void Parse(void)
     case A_LAUNCH:    DoLaunch();    return;
     case A_LAND:      DoLand();      return;
     case A_SWIM:      DoSwim();      return;
+    case A_TALKTO:    DoTalkTo();    return;
+    case A_GREET:     DoGreet();     return;
+    case A_SAY:       DoSay();       return;
 
     default:
       DoActionOnObject(action);

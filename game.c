@@ -62,7 +62,7 @@ int CyclopsState; // 0: default  1: hungry  2: thirsty  3: asleep  4: fled
 int LoadAllowed;
 int PlayerStrength;
 int TrollDescType;
-int ThiefDescType; // 0: default  1: unconcious
+int ThiefDescType; // 0: default  1: unconscious
 int EnableCureRoutine; // countdown
 
 unsigned char VillainAttacking[NUM_VILLAINS];
@@ -101,17 +101,17 @@ void ScatterInventory(void)
 {
   int obj;
 
-  if (Obj[OBJ_LAMP].loc == 2048 + OBJ_YOU)
+  if (Obj[OBJ_LAMP].loc == INSIDE + OBJ_YOU)
     Obj[OBJ_LAMP].loc = ROOM_LIVING_ROOM;
 
-  if (Obj[OBJ_COFFIN].loc == 2048 + OBJ_YOU)
+  if (Obj[OBJ_COFFIN].loc == INSIDE + OBJ_YOU)
     Obj[OBJ_COFFIN].loc = ROOM_EGYPT_ROOM;
 
   Obj[OBJ_SWORD].thiefvalue = 0;
 
 
   for (obj=2; obj<NUM_OBJECTS; obj++)
-    if (Obj[obj].loc == 2048 + OBJ_YOU)
+    if (Obj[obj].loc == INSIDE + OBJ_YOU)
   {
     int room = NUM_ROOMS;
 
@@ -473,7 +473,7 @@ int GoFrom_LivingRoom_Down(void)
 
 int GoFrom_SouthTemple_Down(void)
 {
-  if (Obj[OBJ_COFFIN].loc == 2048 + OBJ_YOU)
+  if (Obj[OBJ_COFFIN].loc == INSIDE + OBJ_YOU)
     {PrintLine("You haven't a prayer of getting the coffin down there."); return 1;}
   else return GoToRoutine(ROOM_TINY_CAVE);
 }
@@ -482,7 +482,7 @@ int GoFrom_SouthTemple_Down(void)
 
 int GoFrom_WhiteCliffsNorth_South(void)
 {
-  if (Obj[OBJ_INFLATED_BOAT].loc == 2048 + OBJ_YOU)
+  if (Obj[OBJ_INFLATED_BOAT].loc == INSIDE + OBJ_YOU)
     {PrintLine("The path is too narrow."); return 1;}
   else return GoToRoutine(ROOM_WHITE_CLIFFS_SOUTH);
 }
@@ -491,7 +491,7 @@ int GoFrom_WhiteCliffsNorth_South(void)
 
 int GoFrom_WhiteCliffsNorth_West(void)
 {
-  if (Obj[OBJ_INFLATED_BOAT].loc == 2048 + OBJ_YOU)
+  if (Obj[OBJ_INFLATED_BOAT].loc == INSIDE + OBJ_YOU)
     {PrintLine("The path is too narrow."); return 1;}
   else return GoToRoutine(ROOM_DAMP_CAVE);
 }
@@ -500,7 +500,7 @@ int GoFrom_WhiteCliffsNorth_West(void)
 
 int GoFrom_WhiteCliffsSouth_North(void)
 {
-  if (Obj[OBJ_INFLATED_BOAT].loc == 2048 + OBJ_YOU)
+  if (Obj[OBJ_INFLATED_BOAT].loc == INSIDE + OBJ_YOU)
     {PrintLine("The path is too narrow."); return 1;}
   else return GoToRoutine(ROOM_WHITE_CLIFFS_NORTH);
 }
@@ -511,7 +511,7 @@ int GoFrom_TimberRoom_West(void)
 {
   if (YouAreDead)
     {PrintLine("You cannot enter in your condition."); return 1;}
-  else if (GetNumObjectsInLocation(2048 + OBJ_YOU) > 0)
+  else if (GetNumObjectsInLocation(INSIDE + OBJ_YOU) > 0)
     {PrintLine("You cannot fit through this passage with that load."); return 1;}
   else return GoToRoutine(ROOM_LOWER_SHAFT);
 }
@@ -520,7 +520,7 @@ int GoFrom_TimberRoom_West(void)
 
 int GoFrom_LowerShaft_East(void)
 {
-  if (GetNumObjectsInLocation(2048 + OBJ_YOU) > 0)
+  if (GetNumObjectsInLocation(INSIDE + OBJ_YOU) > 0)
     {PrintLine("You cannot fit through this passage with that load."); return 1;}
   else return GoToRoutine(ROOM_TIMBER_ROOM);
 }
@@ -541,11 +541,11 @@ int GoFrom_Kitchen_Down(void)
 
 int GoFrom_Studio_Up(void)
 {
-  int count = GetNumObjectsInLocation(2048 + OBJ_YOU);
+  int count = GetNumObjectsInLocation(INSIDE + OBJ_YOU);
 
   if (count == 0)
     PrintLine("Going up empty-handed is a bad idea.");
-  else if (count < 3 && Obj[OBJ_LAMP].loc == 2048 + OBJ_YOU)
+  else if (count < 3 && Obj[OBJ_LAMP].loc == INSIDE + OBJ_YOU)
     return GoToRoutine(ROOM_KITCHEN);
   else
     PrintLine("You can't get up there with what you're carrying.");
@@ -709,6 +709,18 @@ void PrintDesc_Kitchen(void)
     else
       PrintLine("slightly ajar.");
   }
+
+  PrintContents(OBJ_KITCHEN_TABLE, "On the table you see:", 0);
+}
+
+
+
+void PrintDesc_Attic(void)
+{
+  if ((Room[ROOM_ATTIC].prop & R_DESCRIBED) == 0)
+    PrintLine("This is the attic. The only exit is a stairway leading down.");
+
+  PrintContents(OBJ_ATTIC_TABLE, "On a table you see:", 0);
 }
 
 
@@ -995,6 +1007,7 @@ struct OVERRIDEROOMDESC_STRUCT OverrideRoomDesc[] =
   { ROOM_LIVING_ROOM       , PrintDesc_LivingRoom      },
   { ROOM_EAST_OF_HOUSE     , PrintDesc_EastOfHouse     },
   { ROOM_KITCHEN           , PrintDesc_Kitchen         },
+  { ROOM_ATTIC             , PrintDesc_Attic           },
   { ROOM_GRATING_CLEARING  , PrintDesc_GratingClearing },
   { ROOM_GRATING_ROOM      , PrintDesc_GratingRoom     },
   { ROOM_DAM_ROOM          , PrintDesc_DamRoom         },
@@ -1113,6 +1126,44 @@ void PrintDesc_InflatedBoat(int desc_flag)
 
 
 
+void PrintDesc_Lamp(int desc_flag)
+{
+  char *name;
+
+  if (Obj[OBJ_LAMP].prop & PROP_LIT) name = "lit brass lantern"; else name = "brass lantern";
+
+  if (desc_flag == 0)
+    {PrintText("a "); PrintText(name);}
+  else
+  {
+    if (Obj[OBJ_LAMP].prop & PROP_MOVEDDESC)
+      {PrintText("There is a "); PrintText(name); PrintText(" (battery-powered) here.");}
+    else
+      PrintText("A battery-powered brass lantern is on the trophy case.");
+  }
+}
+
+
+
+void PrintDesc_Candles(int desc_flag)
+{
+  char *name;
+
+  if (Obj[OBJ_CANDLES].prop & PROP_LIT) name = "pair of burning candles"; else name = "pair of candles";
+
+  if (desc_flag == 0)
+    {PrintText("a "); PrintText(name);}
+  else
+  {
+    if (Obj[OBJ_CANDLES].prop & PROP_MOVEDDESC)
+      {PrintText("There is a "); PrintText(name); PrintText(" here.");}
+    else
+      PrintText("On the two ends of the altar are burning candles.");
+  }
+}
+
+
+
 struct OVERRIDEOBJECTDESC_STRUCT OverrideObjectDesc[] =
 {
   { OBJ_GHOSTS        , PrintDesc_Ghosts       },
@@ -1121,6 +1172,8 @@ struct OVERRIDEOBJECTDESC_STRUCT OverrideObjectDesc[] =
   { OBJ_THIEF         , PrintDesc_Thief        },
   { OBJ_CYCLOPS       , PrintDesc_Cyclops      },
   { OBJ_INFLATED_BOAT , PrintDesc_InflatedBoat },
+  { OBJ_LAMP          , PrintDesc_Lamp         },
+  { OBJ_CANDLES       , PrintDesc_Candles      },
 
   { 0, 0 }
 };
@@ -1181,7 +1234,7 @@ void DoMiscWithTo_tie_rope(int with_to)
 
 void DoMiscWithTo_tie_railing(int with_to)
 {
-  if (with_to == 0 && (Obj[OBJ_ROPE].loc == 2048 + OBJ_YOU || Obj[OBJ_ROPE].loc == ROOM_DOME_ROOM))
+  if (with_to == 0 && (Obj[OBJ_ROPE].loc == INSIDE + OBJ_YOU || Obj[OBJ_ROPE].loc == ROOM_DOME_ROOM))
   {
     with_to = OBJ_ROPE;
     PrintUsingMsg(with_to);
@@ -1216,10 +1269,10 @@ void DoMiscWithTo_turn_bolt(int with_to)
 {
   int need = OBJ_WRENCH;
 
-  if (with_to == 0 && Obj[need].loc == 2048 + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
+  if (with_to == 0 && Obj[need].loc == INSIDE + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
   if (with_to == 0) {PrintLine("The bolt won't turn with your best effort."); return;}
   if (with_to != need) {PrintFutileMsg(with_to); return;}
-  if (Obj[with_to].loc != 2048 + OBJ_YOU) {PrintLine("You're not holding it."); return;}
+  if (Obj[with_to].loc != INSIDE + OBJ_YOU) {PrintLine("You're not holding it."); return;}
 
   if (GatesButton)
   {
@@ -1254,10 +1307,10 @@ void DoMiscWithTo_fix_leak(int with_to)
 
   if (MaintenanceWaterLevel <= 0) {PrintLine("At least one of those objects isn't visible here!"); return;}
 
-  if (with_to == 0 && Obj[need].loc == 2048 + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
+  if (with_to == 0 && Obj[need].loc == INSIDE + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
   if (with_to == 0) {PrintLine("Fix it with what?"); return;}
   if (with_to != need) {PrintFutileMsg(with_to); return;}
-  if (Obj[with_to].loc != 2048 + OBJ_YOU) {PrintLine("You're not holding it."); return;}
+  if (Obj[with_to].loc != INSIDE + OBJ_YOU) {PrintLine("You're not holding it."); return;}
 
   TimePassed = 1;
   MaintenanceWaterLevel = -1;
@@ -1270,10 +1323,10 @@ void DoMiscWithTo_inflate_fill_inflatable_boat(int with_to)
 {
   int need = OBJ_PUMP;
 
-  if (with_to == 0 && Obj[need].loc == 2048 + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
+  if (with_to == 0 && Obj[need].loc == INSIDE + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
   if (with_to == 0) {PrintLine("You don't have enough lung power to inflate it."); return;}
   if (with_to != need) {PrintFutileMsg(with_to); return;}
-  if (Obj[with_to].loc != 2048 + OBJ_YOU) {PrintLine("You're not holding the pump."); return;}
+  if (Obj[with_to].loc != INSIDE + OBJ_YOU) {PrintLine("You're not holding the pump."); return;}
 
   if (Obj[OBJ_INFLATABLE_BOAT].loc != Obj[OBJ_YOU].loc) {PrintLine("The boat must be on the ground to be inflated."); return;}
 
@@ -1340,10 +1393,10 @@ void DoMiscWithTo_fix_punctured_boat(int with_to)
 {
   int need = OBJ_PUTTY;
 
-  if (with_to == 0 && Obj[need].loc == 2048 + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
+  if (with_to == 0 && Obj[need].loc == INSIDE + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
   if (with_to == 0) {PrintLine("Fix it with what?"); return;}
   if (with_to != need) {PrintFutileMsg(with_to); return;}
-  if (Obj[with_to].loc != 2048 + OBJ_YOU) {PrintLine("You're not holding it."); return;}
+  if (Obj[with_to].loc != INSIDE + OBJ_YOU) {PrintLine("You're not holding it."); return;}
 
   TimePassed = 1;
 
@@ -1365,10 +1418,10 @@ void LockUnlockGrating(int with_to, int lock_flag)
 
   if (GratingRevealed == 0) {PrintLine("At least one of those objects isn't visible here!"); return;}
 
-  if (with_to == 0 && Obj[need].loc == 2048 + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
+  if (with_to == 0 && Obj[need].loc == INSIDE + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
   if (with_to == 0) {PrintLine("You'll need to use something."); return;}
   if (with_to != need) {PrintFutileMsg(with_to); return;}
-  if (Obj[with_to].loc != 2048 + OBJ_YOU) {PrintLine("You're not holding it."); return;}
+  if (Obj[with_to].loc != INSIDE + OBJ_YOU) {PrintLine("You're not holding it."); return;}
 
   if (lock_flag)
   {
@@ -1504,7 +1557,7 @@ void DoMiscWithTo_activate_match(int with_to)
     return;
   }
 
-  if (Obj[OBJ_MATCH].loc != 2048 + OBJ_YOU)
+  if (Obj[OBJ_MATCH].loc != INSIDE + OBJ_YOU)
   {
     PrintLine("You're not holding it.");
     return;
@@ -1585,14 +1638,14 @@ void DoMiscWithTo_activate_candles(int with_to)
     return;
   }
 
-  if (Obj[OBJ_CANDLES].loc != 2048 + OBJ_YOU)
+  if (Obj[OBJ_CANDLES].loc != INSIDE + OBJ_YOU)
   {
     PrintLine("You're not holding the candles.");
     return;
   }
 
   if (with_to == 0 &&
-      Obj[OBJ_MATCH].loc == 2048 + OBJ_YOU &&
+      Obj[OBJ_MATCH].loc == INSIDE + OBJ_YOU &&
       (Obj[OBJ_MATCH].prop & PROP_LIT))
   {
     with_to = OBJ_MATCH;
@@ -1607,7 +1660,7 @@ void DoMiscWithTo_activate_candles(int with_to)
 
   if (with_to == OBJ_MATCH && (Obj[OBJ_MATCH].prop && PROP_LIT))
   {
-    if (Obj[OBJ_MATCH].loc != 2048 + OBJ_YOU)
+    if (Obj[OBJ_MATCH].loc != INSIDE + OBJ_YOU)
       PrintLine("You're not holding the match.");
     else if (Obj[OBJ_CANDLES].prop & PROP_LIT)
       PrintLine("The candles are already lit.");
@@ -1639,7 +1692,7 @@ void DoMiscWithTo_activate_candles(int with_to)
   }
   else if (with_to == OBJ_TORCH && (Obj[OBJ_TORCH].prop && PROP_LIT))
   {
-    if (Obj[OBJ_TORCH].loc != 2048 + OBJ_YOU)
+    if (Obj[OBJ_TORCH].loc != INSIDE + OBJ_YOU)
       PrintLine("You're not holding the torch.");
     else if (Obj[OBJ_CANDLES].prop & PROP_LIT)
       PrintLine("You realize, just in time, that the candles are already lighted.");
@@ -1675,6 +1728,7 @@ void DoMiscWithTo_deactivate_candles(int with_to)
 
   TimePassed = 1;
   PrintLine("The flame is extinguished.");
+  Obj[OBJ_CANDLES].prop |= PROP_MOVEDDESC; // needed since unmoved description of candles says they are burning
 
   prev_darkness = IsPlayerInDarkness();
   Obj[OBJ_CANDLES].prop &= ~PROP_LIT;
@@ -1697,7 +1751,7 @@ void DoMiscWithTo_activate_machine(int with_to)
   if (with_to != OBJ_SCREWDRIVER)
     {PrintLine("It seems that won't do."); return;}
 
-  if (Obj[OBJ_SCREWDRIVER].loc != 2048 + OBJ_YOU)
+  if (Obj[OBJ_SCREWDRIVER].loc != INSIDE + OBJ_YOU)
     {PrintLine("You're not holding the screwdriver."); return;}
 
   if (Obj[OBJ_MACHINE].prop & PROP_OPEN)
@@ -1708,7 +1762,7 @@ void DoMiscWithTo_activate_machine(int with_to)
 
   found = 0;
   for (obj=2; obj<NUM_OBJECTS; obj++)
-    if (Obj[obj].loc == 2048 + OBJ_MACHINE)
+    if (Obj[obj].loc == INSIDE + OBJ_MACHINE)
   {
     if (found == 0) found = 1;
     if (obj == OBJ_COAL) found = 2;
@@ -1716,9 +1770,9 @@ void DoMiscWithTo_activate_machine(int with_to)
   }
 
   if (found == 2)
-    Obj[OBJ_DIAMOND].loc = 2048 + OBJ_MACHINE;
+    Obj[OBJ_DIAMOND].loc = INSIDE + OBJ_MACHINE;
   else if (found == 1)
-    Obj[OBJ_GUNK].loc = 2048 + OBJ_MACHINE;
+    Obj[OBJ_GUNK].loc = INSIDE + OBJ_MACHINE;
 }
 
 
@@ -1727,10 +1781,10 @@ void DoMiscWithTo_dig_sand(int with_to)
 {
   int need = OBJ_SHOVEL;
 
-  if (with_to == 0 && Obj[need].loc == 2048 + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
+  if (with_to == 0 && Obj[need].loc == INSIDE + OBJ_YOU) {with_to = need; PrintUsingMsg(with_to);}
   if (with_to == 0) {PrintLine("Digging with your hands is silly."); return;}
   if (with_to != need) {PrintFutileMsg(with_to); return;}
-  if (Obj[with_to].loc != 2048 + OBJ_YOU) {PrintLine("You're not holding it."); return;}
+  if (Obj[with_to].loc != INSIDE + OBJ_YOU) {PrintLine("You're not holding it."); return;}
 
   TimePassed = 1;
   CaveHoleDepth++;
@@ -1782,10 +1836,10 @@ void DoMiscWithTo_fill_bottle(int with_to)
     ItObj = OBJ_BOTTLE;
     return;
   }
-  if (Obj[OBJ_WATER].loc == 2048 + OBJ_BOTTLE) {PrintLine("The bottle is already full of water."); return;}
+  if (Obj[OBJ_WATER].loc == INSIDE + OBJ_BOTTLE) {PrintLine("The bottle is already full of water."); return;}
 
   TimePassed = 1;
-  Obj[OBJ_WATER].loc = 2048 + OBJ_BOTTLE;
+  Obj[OBJ_WATER].loc = INSIDE + OBJ_BOTTLE;
   PrintLine("The bottle is now full of water.");
 }
 
@@ -1803,7 +1857,7 @@ void AttackVillain(int obj, int with_to)
     for (i=2; i<NUM_OBJECTS; i++)
     {
       with_to = Obj[i].order;
-      if (Obj[with_to].loc == 2048 + OBJ_YOU &&
+      if (Obj[with_to].loc == INSIDE + OBJ_YOU &&
           (Obj[with_to].prop & PROP_WEAPON)) break;
     }
 
@@ -1820,6 +1874,11 @@ void AttackVillain(int obj, int with_to)
   {
     if (with_to == 0) PrintLine("You seem unable to interact with these spirits.");
     else              PrintLine("How can you attack a spirit with material objects?");
+    return;
+  }
+  else if (obj == OBJ_THIEF && (Obj[OBJ_THIEF].prop & PROP_NODESC))
+  {
+    PrintLine("You sense someone nearby, but can't see them.");
     return;
   }
 
@@ -1871,7 +1930,7 @@ void DoMiscWithTo_attack_yourself(int with_to) {AttackVillain(OBJ_YOU    , with_
 
 int CheckFlameSource(int obj, char *msg)
 {
-  if (Obj[obj].loc == 2048 + OBJ_YOU &&
+  if (Obj[obj].loc == INSIDE + OBJ_YOU &&
       (Obj[obj].prop & PROP_LIT))
   {
     PrintLine(msg);
@@ -1891,7 +1950,7 @@ void BurnObj(int obj, int with)
   if (with == 0)
     {PrintLine("You should say what to light it with."); return;}
 
-  if (Obj[with].loc != 2048 + OBJ_YOU)
+  if (Obj[with].loc != INSIDE + OBJ_YOU)
   {
     switch (with)
     {
@@ -1924,7 +1983,7 @@ void BurnObj(int obj, int with)
     return;
   }
 
-  if (Obj[obj].loc == 2048 + OBJ_YOU)
+  if (Obj[obj].loc == INSIDE + OBJ_YOU)
   {
     if (obj == OBJ_LEAVES)
       PrintLine("The leaves burn, and so do you.");
@@ -1995,6 +2054,174 @@ void DoMiscWithTo_turn_book(int with_to)
 
 
 
+void DoMiscWithTo_pour_water(int with_to)
+{
+  if (Obj[OBJ_BOTTLE].loc != INSIDE + OBJ_YOU ||
+      Obj[OBJ_WATER].loc != INSIDE + OBJ_BOTTLE)
+    PrintLine("You don't have any water.");
+  else if ((Obj[OBJ_BOTTLE].prop & PROP_OPEN) == 0)
+    PrintLine("You'll have to open the bottle first.");
+  else if (with_to == 0)
+    PrintLine("You need to pour it on something.");
+  else
+  {
+    TimePassed = 1;
+    Obj[OBJ_WATER].loc = 0;      
+
+    switch (with_to)
+    {
+      case OBJ_HOT_BELL:
+        PrintLine("The water cools the bell and is evaporated.");
+        BellHotCountdown = 0;
+        Obj[OBJ_BELL].loc = ROOM_ENTRANCE_TO_HADES;
+        Obj[OBJ_HOT_BELL].loc = 0;
+      break;
+
+      case OBJ_TORCH:
+        PrintLine("The water evaporates before it gets close.");
+      break;
+
+      case OBJ_MATCH:
+      case OBJ_CANDLES:
+        if (Obj[with_to].prop & PROP_LIT)
+        {
+          int prev_darkness = IsPlayerInDarkness();
+
+          PrintLine("It is extinguished.");
+          Obj[with_to].prop &= ~PROP_LIT;
+          if (with_to == OBJ_MATCH) MatchTurnsLeft = 0;
+
+          if (IsPlayerInDarkness() != prev_darkness)
+          {
+            PrintBlankLine();
+            PrintPlayerRoomDesc(1);
+          }
+        }
+        else
+          PrintLine("The water spills over it, to the floor, and evaporates.");
+      break;
+
+      default: // note that this includes with_to >= NUM_OBJECTS
+        PrintLine("The water spills over it, to the floor, and evaporates.");
+      break;
+    }
+  }
+}
+
+
+
+void DoMiscWithTo_pour_putty(int with_to)
+{
+  if (Obj[OBJ_PUTTY].loc != INSIDE + OBJ_YOU &&
+      ( Obj[OBJ_TUBE].loc != INSIDE + OBJ_YOU ||
+        Obj[OBJ_PUTTY].loc != INSIDE + OBJ_TUBE))
+    PrintLine("You're not holding it.");
+  else if ((Obj[OBJ_TUBE].prop & PROP_OPEN) == 0)
+    PrintLine("The tube is closed.");
+  else if (with_to == 0)
+    PrintLine("You need to pour it on something.");
+  else
+    switch (with_to)
+  {
+    case FOBJ_LEAK:
+      if (MaintenanceWaterLevel <= 0)
+        PrintLine("At least one of those objects isn't visible here!");
+      else
+      {
+        TimePassed = 1;
+        MaintenanceWaterLevel = -1;
+        PrintLine("By some miracle of Zorkian technology, you have managed to stop the leak in the dam.");
+      }
+    break;
+
+    case OBJ_PUNCTURED_BOAT:
+      TimePassed = 1;
+      Obj[OBJ_INFLATABLE_BOAT].loc = Obj[OBJ_PUNCTURED_BOAT].loc;
+      Obj[OBJ_PUNCTURED_BOAT].loc = 0;
+      PrintLine("Well done. The boat is repaired.");
+    break;
+
+    default: // note that this includes with_to >= NUM_OBJECTS
+      PrintLine("That would be futile.");
+    break;
+  }
+}
+
+
+
+void DoMiscWithTo_oil_bolt(int with_to)
+{
+  if (with_to == 0)
+    PrintLine("Oil it with what?");
+  else if (with_to != OBJ_PUTTY)
+    PrintLine("You can't oil it with that!");
+  else if (Obj[with_to].loc != INSIDE + OBJ_YOU)
+    PrintLine("You're not holding it.");
+  else
+  {
+    TimePassed = 1;
+    PrintLine("Hmm. It appears the tube contained glue, not oil. Turning the bolt won't get any easier....");
+  }
+}
+
+
+
+void DoMiscWithTo_brush_teeth(int with_to)
+{
+  if (with_to == 0)
+    PrintLine("Dental hygiene is highly recommended, but I'm not sure what you want to brush them with.");
+  else if (with_to != OBJ_PUTTY)
+    PrintLine("A nice idea, but with that?");
+  else if (Obj[with_to].loc != INSIDE + OBJ_YOU)
+    PrintLine("You're not holding it.");
+  else
+  {
+    TimePassed = 1;
+    PrintLine("Well, you seem to have been brushing your teeth with some sort of glue. As a result, your mouth gets glued together (with your nose) and you die of respiratory failure.");
+    YoureDead(); // ##### RIP #####
+  }
+}
+
+
+
+void TieUpRoutine(int i, int with_to)
+{
+  if (with_to == 0 && Obj[OBJ_ROPE].loc == INSIDE + OBJ_YOU)
+  {
+    with_to = OBJ_ROPE;
+    PrintUsingMsg(with_to);
+  }
+  if (with_to == 0) {PrintLine("Please specify what to tie him with."); return;}
+  if (with_to != OBJ_ROPE) {PrintLine("You can't tie him with that!"); return;}
+
+
+  if (i == VILLAIN_CYCLOPS)
+    PrintLine("You cannot tie the cyclops, though he is fit to be tied.");
+  else
+  {
+    char *name;
+
+    if (i == VILLAIN_THIEF) name = "thief"; else name = "troll";
+
+    if (VillainStrength[i] < 0)
+    {
+      PrintText("Your attempt to tie up the "); PrintText(name); PrintLine(" awakens him.");
+      VillainStrength[i] = -VillainStrength[i];
+      VillainConscious(i);
+    }
+    else
+      {PrintText("The "); PrintText(name); PrintLine(" struggles and you cannot tie him up.");}
+  }
+}
+
+
+
+void DoMiscWithTo_tie_cyclops(int with_to) {TieUpRoutine(VILLAIN_CYCLOPS, with_to);}
+void DoMiscWithTo_tie_thief  (int with_to) {TieUpRoutine(VILLAIN_THIEF  , with_to);}
+void DoMiscWithTo_tie_troll  (int with_to) {TieUpRoutine(VILLAIN_TROLL  , with_to);}
+
+
+
 struct DOMISCWITH_STRUCT DoMiscWithTo[] =
 {
   { A_TIE        , OBJ_ROPE            , DoMiscWithTo_tie_rope                     },
@@ -2048,6 +2275,13 @@ struct DOMISCWITH_STRUCT DoMiscWithTo[] =
   { A_ACTIVATE   , OBJ_TORCH           , DoMiscWithTo_activate_torch               },
   { A_DEACTIVATE , OBJ_TORCH           , DoMiscWithTo_deactivate_torch             },
   { A_TURN       , OBJ_BOOK            , DoMiscWithTo_turn_book                    },
+  { A_POUR       , OBJ_WATER           , DoMiscWithTo_pour_water                   },
+  { A_POUR       , OBJ_PUTTY           , DoMiscWithTo_pour_putty                   },
+  { A_OIL        , FOBJ_BOLT           , DoMiscWithTo_oil_bolt                     },
+  { A_BRUSH      , OBJ_YOU             , DoMiscWithTo_brush_teeth                  },
+  { A_TIE        , OBJ_CYCLOPS         , DoMiscWithTo_tie_cyclops                  },
+  { A_TIE        , OBJ_THIEF           , DoMiscWithTo_tie_thief                    },
+  { A_TIE        , OBJ_TROLL           , DoMiscWithTo_tie_troll                    },
 
   { 0, 0, 0 }
 };
@@ -2074,7 +2308,7 @@ void GiveBottleToCyclops(void)
 {
   TimePassed = 1;
 
-  if (Obj[OBJ_WATER].loc != 2048 + OBJ_BOTTLE)
+  if (Obj[OBJ_WATER].loc != INSIDE + OBJ_BOTTLE)
     PrintLine("The cyclops refuses the empty bottle.");
   else if (CyclopsState != 2) // not thirsty
     PrintLine("The cyclops apparently is not thirsty and refuses your generous offer.");
@@ -2092,12 +2326,12 @@ void GiveBottleToCyclops(void)
 
 
 
-void DoMiscGiveTo_give_cyclops(int obj)
+void DoMiscGiveTo_cyclops(int obj)
 {
   if (obj == OBJ_WATER)
     obj = OBJ_BOTTLE;
 
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     PrintLine("You aren't holding that!");
   else if (CyclopsState == 3)
     PrintLine("He's asleep.");
@@ -2113,10 +2347,13 @@ void DoMiscGiveTo_give_cyclops(int obj)
 
 
 
-void DoMiscGiveTo_give_thief(int obj)
+void DoMiscGiveTo_thief(int obj)
 {
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     {PrintLine("You aren't holding that!"); return;}
+
+  if (Obj[OBJ_THIEF].prop & PROP_NODESC)
+    {PrintLine("You can't see him, but he could be nearby."); return;}
 
   TimePassed = 1;
 
@@ -2129,7 +2366,7 @@ void DoMiscGiveTo_give_thief(int obj)
     PrintLine("Your proposed victim suddenly recovers consciousness.");
   }
 
-  Obj[obj].loc = 2048 + OBJ_THIEF;
+  Obj[obj].loc = INSIDE + OBJ_THIEF;
   Obj[obj].prop |= PROP_NODESC;
   Obj[obj].prop |= PROP_NOTTAKEABLE;
 
@@ -2146,10 +2383,13 @@ void DoMiscGiveTo_give_thief(int obj)
 
 
 
-void DoMiscGiveTo_give_troll(int obj)
+void DoMiscGiveTo_troll(int obj)
 {
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     {PrintLine("You aren't holding that!"); return;}
+
+  if (TrollDescType == 1) // unconscious
+    {PrintLine("The unconscious troll ignores your gift."); return;}
 
   TimePassed = 1;
 
@@ -2157,7 +2397,7 @@ void DoMiscGiveTo_give_troll(int obj)
   {
     PrintLine("The troll scratches his head in confusion, then takes the axe.");
 
-    Obj[OBJ_AXE].loc = 2048 + OBJ_TROLL;
+    Obj[OBJ_AXE].loc = INSIDE + OBJ_TROLL;
     Obj[OBJ_AXE].prop |= PROP_NODESC;
     Obj[OBJ_AXE].prop |= PROP_NOTTAKEABLE;
     Obj[OBJ_AXE].prop &= ~PROP_WEAPON;
@@ -2180,6 +2420,7 @@ void DoMiscGiveTo_give_troll(int obj)
       {
         PrintLine(" and, being for the moment sated, throws it back. Fortunately, the troll has poor control, and it falls to the floor. He does not look pleased.");
         Obj[obj].loc = Obj[OBJ_YOU].loc;
+        MoveObjOrderToLast(obj);
         VillainAttacking[VILLAIN_TROLL] = 1;
       }
     }
@@ -2204,9 +2445,208 @@ void DoMiscGiveTo_give_troll(int obj)
 
 struct DOMISCTO_STRUCT DoMiscGiveTo[] =
 {
-  { 0 , OBJ_CYCLOPS , DoMiscGiveTo_give_cyclops },
-  { 0 , OBJ_THIEF   , DoMiscGiveTo_give_thief   },
-  { 0 , OBJ_TROLL   , DoMiscGiveTo_give_troll   },
+  { 0 , OBJ_CYCLOPS , DoMiscGiveTo_cyclops },
+  { 0 , OBJ_THIEF   , DoMiscGiveTo_thief   },
+  { 0 , OBJ_TROLL   , DoMiscGiveTo_troll   },
+
+  { 0, 0, 0 }
+};
+//*****************************************************************************
+
+
+
+//*****************************************************************************
+void ThrowObjRoutine(int obj, int to)
+{
+  int prev_darkness = IsPlayerInDarkness();
+
+  switch (obj)
+  {
+    case OBJ_LAMP:
+      PrintLine("The lamp has smashed into the floor, and the light has gone out.");
+      TimePassed = 1;
+      Obj[OBJ_LAMP].loc = 0;
+      Obj[OBJ_BROKEN_LAMP].loc = Obj[OBJ_YOU].loc;
+    break;
+
+    case OBJ_EGG:
+      PrintLine("Your rather indelicate handling of the egg has caused it some damage, although you have succeeded in opening it.");
+      TimePassed = 1;
+      Obj[OBJ_EGG].loc = 0;
+      Obj[OBJ_BROKEN_EGG].loc = Obj[OBJ_YOU].loc;
+      Obj[OBJ_BROKEN_EGG].prop |= PROP_OPENABLE;
+      Obj[OBJ_BROKEN_EGG].prop |= PROP_OPEN;
+    break;
+
+    case OBJ_BOTTLE:
+      PrintLine("The bottle hits the far wall and shatters.");
+      TimePassed = 1;
+      Obj[OBJ_BOTTLE].loc = 0;
+    break;
+
+    default:
+      if (to == 0) PrintLine("It tumbles to the ground.");
+      else         PrintLine("You miss.");
+      TimePassed = 1;
+      Obj[obj].loc = Obj[OBJ_YOU].loc;
+      MoveObjOrderToLast(obj);
+    break;
+  }
+
+  if (IsPlayerInDarkness() != prev_darkness)
+  {
+    PrintBlankLine();
+    PrintPlayerRoomDesc(1);
+  }
+}
+
+
+
+void DoMiscThrowTo_chasm(int obj)
+{
+  int prev_darkness = IsPlayerInDarkness();
+
+  PrintLine("It drops out of sight into the chasm.");
+  TimePassed = 1;
+  Obj[obj].loc = 0;
+  if (IsPlayerInDarkness() != prev_darkness)
+  {
+    PrintBlankLine();
+    PrintPlayerRoomDesc(1);
+  }
+}
+
+
+
+void DoMiscThrowTo_river(int obj)
+{
+  int prev_darkness = IsPlayerInDarkness();
+
+  PrintLine("It tumbles into the river and is seen no more.");
+  TimePassed = 1;
+  Obj[obj].loc = 0;
+  if (IsPlayerInDarkness() != prev_darkness)
+  {
+    PrintBlankLine();
+    PrintPlayerRoomDesc(1);
+  }
+}
+
+
+
+void DoMiscThrowTo_mirror(int obj)
+{
+  if (MirrorBroken)
+    PrintLine("Haven't you done enough damage already?");
+  else
+  {
+    PrintLine("You have broken the mirror. I hope you have a seven years' supply of good luck handy.");
+    TimePassed = 1;
+
+    MirrorBroken = 1;
+    NotLucky = 1;
+
+    ThrowObjRoutine(obj, 0);
+  }
+}
+
+
+
+void DoMiscThrowTo_troll(int obj)
+{
+  if (TrollDescType == 1) // unconscious
+    ThrowObjRoutine(obj, OBJ_TROLL);
+  else
+  {
+    PrintLine("The troll, who is remarkably coordinated, catches it.");
+    DoMiscGiveTo_troll(obj);
+  }
+}
+
+
+
+void DoMiscThrowTo_cyclops(int obj)
+{
+  if (CyclopsState == 3) // sleeping
+    ThrowObjRoutine(obj, OBJ_CYCLOPS);
+  else
+  {
+    PrintLine("\"Do you think I'm as stupid as my father was?\", he says, dodging.");
+    ThrowObjRoutine(obj, 0);
+  }
+}
+
+
+
+void ThiefLoseBagContents(void)
+{
+  int flag = 0, obj;
+
+  PrintText("You evidently frightened the robber, though you didn't hit him. He flees");
+
+  for (obj=2; obj<NUM_OBJECTS; obj++)
+    if (Obj[obj].loc == INSIDE + OBJ_THIEF &&
+        obj != OBJ_LARGE_BAG &&
+        obj != OBJ_STILETTO)
+  {
+    flag = 1;
+    Obj[obj].loc = Obj[OBJ_YOU].loc;
+    Obj[obj].prop &= ~PROP_NODESC;
+    Obj[obj].prop &= ~PROP_NOTTAKEABLE;
+  }
+
+  if (flag)
+    PrintLine(", but the contents of his bag fall on the floor.");
+  else
+    PrintLine(".");
+}
+
+
+
+void DoMiscThrowTo_thief(int obj)
+{
+  if (Obj[OBJ_THIEF].prop & PROP_NODESC)
+    {PrintLine("You can't see him, but he could be nearby."); return;}
+
+  if (ThiefDescType == 1) // unconscious
+    ThrowObjRoutine(obj, OBJ_THIEF);
+  else
+  {
+    TimePassed = 1;
+
+    if (obj == OBJ_KNIFE &&
+        VillainAttacking[VILLAIN_THIEF] == 0)
+    {
+      Obj[OBJ_KNIFE].loc = Obj[OBJ_YOU].loc;
+
+      if (PercentChance(10, 0))
+      {
+        ThiefLoseBagContents();
+        Obj[OBJ_THIEF].prop |= PROP_NODESC;
+      }
+      else
+      {
+        PrintLine("You missed. The thief makes no attempt to take the knife, though it would be a fine addition to the collection in his bag. He does seem angered by your attempt.");
+        VillainAttacking[VILLAIN_THIEF] = 1;
+      }
+    }
+    else
+      ThrowObjRoutine(obj, OBJ_THIEF);
+  }
+}
+
+
+
+struct DOMISCTO_STRUCT DoMiscThrowTo[] =
+{
+  { 0 , FOBJ_CHASM           , DoMiscThrowTo_chasm           },
+  { 0 , FOBJ_CLIMBABLE_CLIFF , DoMiscThrowTo_river           },
+  { 0 , FOBJ_RIVER           , DoMiscThrowTo_river           },
+  { 0 , FOBJ_MIRROR1         , DoMiscThrowTo_mirror          },
+  { 0 , FOBJ_MIRROR2         , DoMiscThrowTo_mirror          },
+  { 0 , OBJ_TROLL            , DoMiscThrowTo_troll           },
+  { 0 , OBJ_CYCLOPS          , DoMiscThrowTo_cyclops         },
+  { 0 , OBJ_THIEF            , DoMiscThrowTo_thief           },
 
   { 0, 0, 0 }
 };
@@ -2464,7 +2904,7 @@ void DoMisc_enter_inflated_boat(void)
     PrintLine("You're already in it!");
   else
   {
-    int loc = 2048 + OBJ_YOU;
+    int loc = INSIDE + OBJ_YOU;
 
     TimePassed = 1;
 
@@ -2593,7 +3033,7 @@ void DoMisc_ring_bell(void)
     Obj[OBJ_BELL].loc = 0;
     Obj[OBJ_HOT_BELL].loc = ROOM_ENTRANCE_TO_HADES;
 
-    if (Obj[OBJ_CANDLES].loc == 2048 + OBJ_YOU)
+    if (Obj[OBJ_CANDLES].loc == INSIDE + OBJ_YOU)
     {
       PrintLine("In your confusion, the candles drop to the ground (and they are out).");
 
@@ -2695,7 +3135,7 @@ void DoMisc_wave_sceptre(void)
 
 void DoMisc_raise_sceptre(void)
 {
-  if (Obj[OBJ_SCEPTRE].loc != 2048 + OBJ_YOU)
+  if (Obj[OBJ_SCEPTRE].loc != INSIDE + OBJ_YOU)
     PrintLine("You're not holding it.");
   else
     DoMisc_wave_sceptre();
@@ -2731,7 +3171,7 @@ void DoMisc_read_book(void)
   int obj = OBJ_BOOK;
 
   //if not holding it, try to take it
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     if (TakeRoutine(obj, "(taking it first)")) return;
 
   TimePassed = 1;
@@ -2755,7 +3195,7 @@ void DoMisc_read_advertisement(void)
   int obj = OBJ_ADVERTISEMENT;
 
   //if not holding it, try to take it
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     if (TakeRoutine(obj, "(taking it first)")) return;
 
   TimePassed = 1;
@@ -2769,7 +3209,7 @@ void DoMisc_read_match(void)
   int obj = OBJ_MATCH;
 
   //if not holding it, try to take it
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     if (TakeRoutine(obj, "(taking it first)")) return;
 
   TimePassed = 1;
@@ -2783,7 +3223,7 @@ void DoMisc_read_map(void)
   int obj = OBJ_MAP;
 
   //if not holding it, try to take it
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     if (TakeRoutine(obj, "(taking it first)")) return;
 
   TimePassed = 1;
@@ -2797,7 +3237,7 @@ void DoMisc_read_boat_label(void)
   int obj = OBJ_BOAT_LABEL;
 
   //if not holding it, try to take it
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     if (TakeRoutine(obj, "(taking it first)")) return;
 
   TimePassed = 1;
@@ -2811,7 +3251,7 @@ void DoMisc_read_guide(void)
   int obj = OBJ_GUIDE;
 
   //if not holding it, try to take it
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     if (TakeRoutine(obj, "(taking it first)")) return;
 
   TimePassed = 1;
@@ -2825,7 +3265,7 @@ void DoMisc_read_tube(void)
   int obj = OBJ_TUBE;
 
   //if not holding it, try to take it
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     if (TakeRoutine(obj, "(taking it first)")) return;
 
   TimePassed = 1;
@@ -2839,7 +3279,7 @@ void DoMisc_read_owners_manual(void)
   int obj = OBJ_OWNERS_MANUAL;
 
   //if not holding it, try to take it
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     if (TakeRoutine(obj, "(taking it first)")) return;
 
   TimePassed = 1;
@@ -2878,7 +3318,7 @@ void DoMisc_open_egg(void)
 
   with = GetWith(); if (with < 0) return;
 
-  if (Obj[OBJ_EGG].loc != 2048 + OBJ_YOU)
+  if (Obj[OBJ_EGG].loc != INSIDE + OBJ_YOU)
     {PrintLine("You aren't holding the egg."); return;}
 
   if (Obj[OBJ_EGG].prop & PROP_OPEN)
@@ -2900,7 +3340,7 @@ void DoMisc_open_egg(void)
     TimePassed = 1;
 
     Obj[OBJ_EGG].loc = 0;
-    Obj[OBJ_BROKEN_EGG].loc = 2048 + OBJ_YOU;
+    Obj[OBJ_BROKEN_EGG].loc = INSIDE + OBJ_YOU;
     Obj[OBJ_BROKEN_EGG].prop |= PROP_OPENABLE;
     Obj[OBJ_BROKEN_EGG].prop |= PROP_OPEN;
     return;
@@ -3434,7 +3874,7 @@ void DoMisc_count_matches(void)
 
 void EatFood(int obj, char *msg)
 {
-  if (Obj[obj].loc != 2048 + OBJ_YOU)
+  if (Obj[obj].loc != INSIDE + OBJ_YOU)
     PrintLine("You're not holding that.");
   else
   {
@@ -3468,13 +3908,13 @@ void DoMisc_drink_water(void)
     TimePassed = 1;
   }
   else if (Obj[OBJ_BOTTLE].loc == Obj[OBJ_YOU].loc ||
-           Obj[OBJ_BOTTLE].loc == 2048 + OBJ_YOU)
+           Obj[OBJ_BOTTLE].loc == INSIDE + OBJ_YOU)
   {
-    if (Obj[OBJ_BOTTLE].loc != 2048 + OBJ_YOU)
+    if (Obj[OBJ_BOTTLE].loc != INSIDE + OBJ_YOU)
       PrintLine("You have to be holding the bottle first.");
     else if ((Obj[OBJ_BOTTLE].prop & PROP_OPEN) == 0)
       PrintLine("You'll have to open the bottle first.");
-    else if (Obj[OBJ_WATER].loc != 2048 + OBJ_BOTTLE)
+    else if (Obj[OBJ_WATER].loc != INSIDE + OBJ_BOTTLE)
       PrintLine("There isn't any water here.");
     else
     {
@@ -3606,17 +4046,17 @@ void DoMisc_lookin_trunk(void)
 
 void DoMisc_squeeze_tube(void)
 {
-  if (Obj[OBJ_TUBE].loc != 2048 + OBJ_YOU)
+  if (Obj[OBJ_TUBE].loc != INSIDE + OBJ_YOU)
     PrintLine("You aren't holding the tube.");
   else if ((Obj[OBJ_TUBE].prop & PROP_OPEN) == 0)
     PrintLine("The tube is closed.");
-  else if (Obj[OBJ_PUTTY].loc != 2048 + OBJ_TUBE)
+  else if (Obj[OBJ_PUTTY].loc != INSIDE + OBJ_TUBE)
     PrintLine("The tube is apparently empty.");
   else
   {
     PrintLine("The viscous material oozes into your hand.");
     TimePassed = 1;
-    Obj[OBJ_PUTTY].loc = 2048 + OBJ_YOU;
+    Obj[OBJ_PUTTY].loc = INSIDE + OBJ_YOU;
   }
 }
 
@@ -3638,7 +4078,7 @@ void DoMisc_examine_lowered_basket(void)
 
 void DoMisc_lookin_large_bag(void)
 {
-  if (ThiefDescType == 1) // unconcious
+  if (ThiefDescType == 1) // unconscious
     PrintLine("The bag is underneath the thief, so one can't say what, if anything, is inside.");
   else
     PrintLine("Getting close enough would be a good trick.");
@@ -3659,6 +4099,217 @@ void DoMisc_lookthrough_grate(void)
 void DoMisc_lookin_water(void)
 {
   PrintLine("It's clear and might be potable.");
+}
+
+
+
+void DoMisc_whereis_granite_wall(void)
+{
+  switch (Obj[OBJ_YOU].loc)
+  {
+    case ROOM_NORTH_TEMPLE:  PrintLine("The west wall is solid granite here."); break;
+    case ROOM_TREASURE_ROOM: PrintLine("The east wall is solid granite here."); break;
+    case ROOM_SLIDE_ROOM:    PrintLine("It only SAYS \"Granite Wall\".");       break;
+  }
+}
+
+
+
+void DoMisc_whereis_songbird(void)
+{
+  PrintLine("The songbird is not here but is probably nearby.");
+}
+
+
+
+void DoMisc_whereis_white_house(void)
+{
+  switch (Obj[OBJ_YOU].loc)
+  {
+    case ROOM_KITCHEN:
+    case ROOM_LIVING_ROOM:
+    case ROOM_ATTIC:
+      PrintLine("Why not find your brains?"); // never printed because house is not in these locations
+    break;
+
+    case ROOM_EAST_OF_HOUSE:
+    case ROOM_WEST_OF_HOUSE:
+    case ROOM_NORTH_OF_HOUSE:
+    case ROOM_SOUTH_OF_HOUSE:
+      PrintLine("It's right here!");
+    break;
+
+    case ROOM_CLEARING: PrintLine("It seems to be to the west.");       break;
+    default:            PrintLine("It was here just a minute ago...."); break;
+  }
+}
+
+
+
+void DoMisc_whereis_forest(void)
+{
+  PrintLine("You cannot see the forest for the trees.");
+}
+
+
+
+void DoMisc_read_granite_wall(void)
+{
+  if (Obj[OBJ_YOU].loc == ROOM_SLIDE_ROOM)
+    PrintLine("It only SAYS \"Granite Wall\".");
+  else
+    PrintLine("There's nothing to read.");
+}
+
+
+
+void DoMisc_examine_zorkmid(void)
+{
+  PrintLine("The zorkmid is the unit of currency of the Great Underground Empire.");
+}
+
+
+
+void DoMisc_examine_grue(void)
+{
+  PrintLine("The grue is a sinister, lurking presence in the dark places of the earth. Its favorite diet is adventurers, but its insatiable appetite is tempered by its fear of light. No grue has ever been seen by the light of day, and few have survived its fearsome jaws to tell the tale.");
+}
+
+
+
+void DoMisc_whereis_zorkmid(void)
+{
+  PrintLine("The best way to find zorkmids is to go out and look for them.");
+}
+
+
+
+void DoMisc_whereis_grue(void)
+{
+  PrintLine("There is no grue here, but I'm sure there is at least one lurking in the darkness nearby. I wouldn't let my light go out if I were you!");
+}
+
+
+
+void DoMisc_listento_troll(void)
+{
+  PrintLine("Every so often the troll says something, probably uncomplimentary, in his guttural tongue.");
+}
+
+
+
+void DoMisc_listento_thief(void)
+{
+  PrintLine("The thief says nothing, as you have not been formally introduced.");
+}
+
+
+
+void DoMisc_listento_cyclops(void)
+{
+  PrintLine("You can hear his stomach rumbling.");
+}
+
+
+
+void DoMisc_listento_forest(void)
+{
+  PrintLine("The pines and the hemlocks seem to be murmuring.");
+}
+
+
+
+void DoMisc_listento_songbird(void)
+{
+  PrintLine("You can't hear the songbird now.");
+}
+
+
+
+void DoMisc_cross_rainbow(void)
+{
+  if (Obj[OBJ_YOU].loc == ROOM_CANYON_VIEW)
+    PrintLine("From here?!?");
+  else if (RainbowSolid == 0)
+    PrintLine("Can you walk on water vapor?");
+  else
+  {
+    if (Obj[OBJ_YOU].loc == ROOM_ARAGAIN_FALLS)
+      GoToRoutine(ROOM_END_OF_RAINBOW);
+    else if (Obj[OBJ_YOU].loc == ROOM_END_OF_RAINBOW)
+      GoToRoutine(ROOM_ARAGAIN_FALLS);
+    else
+      PrintLine("You'll have to say which way...");
+  }    
+}
+
+
+
+void DoMisc_cross_lake(void)
+{
+  PrintLine("It's too wide to cross.");
+}
+
+
+
+void DoMisc_cross_stream(void)
+{
+  PrintLine("The other side is a sheer rock cliff.");
+}
+
+
+
+void DoMisc_cross_chasm(void)
+{
+  PrintLine("It's too far to jump, and there's no bridge.");
+}
+
+
+
+void DoMisc_exorcise_ghosts(void)
+{
+  if (SpiritsBanished == 0 &&
+      Obj[OBJ_BELL].loc == INSIDE + OBJ_YOU &&
+      Obj[OBJ_BOOK].loc == INSIDE + OBJ_YOU &&
+      Obj[OBJ_CANDLES].loc == INSIDE + OBJ_YOU)
+    PrintLine("You must perform the ceremony.");
+  else
+    PrintLine("You aren't equipped for an exorcism.");
+}
+
+
+
+void DoMisc_raise_rug(void)
+{
+  PrintText("The rug is too heavy to lift");
+  if (RugMoved)
+    PrintLine(".");
+  else
+    PrintLine(", but in trying to take it you have noticed an irregularity beneath it.");
+}
+
+
+
+void DoMisc_raise_trap_door(void)
+{
+  DoMisc_open_trap_door();
+}
+
+
+
+void DoMisc_smell_gas(void)
+{
+  PrintLine("It smells like coal gas in here.");
+}
+
+
+
+void DoMisc_smell_sandwich_bag(void)
+{
+  if (Obj[OBJ_LUNCH].loc == INSIDE + OBJ_SANDWICH_BAG)
+    PrintLine("It smells of hot peppers.");
+  else
+    PrintLine("It smells as you would expect.");
 }
 
 
@@ -3822,6 +4473,29 @@ struct DOMISC_STRUCT DoMisc[] =
   { A_LOOKIN       , FOBJ_GRATE           , DoMisc_lookthrough_grate           },
   { A_EXAMINE      , OBJ_WATER            , DoMisc_lookin_water                },
   { A_LOOKIN       , OBJ_WATER            , DoMisc_lookin_water                },
+  { A_WHEREIS      , FOBJ_GRANITE_WALL    , DoMisc_whereis_granite_wall        },
+  { A_WHEREIS      , FOBJ_SONGBIRD        , DoMisc_whereis_songbird            },
+  { A_WHEREIS      , FOBJ_WHITE_HOUSE     , DoMisc_whereis_white_house         },
+  { A_WHEREIS      , FOBJ_FOREST          , DoMisc_whereis_forest              },
+  { A_READ         , FOBJ_GRANITE_WALL    , DoMisc_read_granite_wall           },
+  { A_EXAMINE      , OBJ_ZORKMID          , DoMisc_examine_zorkmid             },
+  { A_EXAMINE      , OBJ_GRUE             , DoMisc_examine_grue                },
+  { A_WHEREIS      , OBJ_ZORKMID          , DoMisc_whereis_zorkmid             },
+  { A_WHEREIS      , OBJ_GRUE             , DoMisc_whereis_grue                },
+  { A_LISTENTO     , OBJ_TROLL            , DoMisc_listento_troll              },
+  { A_LISTENTO     , OBJ_THIEF            , DoMisc_listento_thief              },
+  { A_LISTENTO     , OBJ_CYCLOPS          , DoMisc_listento_cyclops            },
+  { A_LISTENTO     , FOBJ_FOREST          , DoMisc_listento_forest             },
+  { A_LISTENTO     , FOBJ_SONGBIRD        , DoMisc_listento_songbird           },
+  { A_CROSS        , FOBJ_RAINBOW         , DoMisc_cross_rainbow               },
+  { A_CROSS        , FOBJ_LAKE            , DoMisc_cross_lake                  },
+  { A_CROSS        , FOBJ_STREAM          , DoMisc_cross_stream                },
+  { A_CROSS        , FOBJ_CHASM           , DoMisc_cross_chasm                 },
+  { A_EXORCISE     , OBJ_GHOSTS           , DoMisc_exorcise_ghosts             },
+  { A_RAISE        , FOBJ_RUG             , DoMisc_raise_rug                   },
+  { A_RAISE        , FOBJ_TRAP_DOOR       , DoMisc_raise_trap_door             },
+  { A_SMELL        , FOBJ_GAS             , DoMisc_smell_gas                   },
+  { A_SMELL        , OBJ_SANDWICH_BAG     , DoMisc_smell_sandwich_bag          },
 
   { 0, 0, 0 }
 };
@@ -3830,10 +4504,84 @@ struct DOMISC_STRUCT DoMisc[] =
 
 
 //*****************************************************************************
+void PrintRandomFun(void)
+{
+  switch (GetRandom(4))
+  {
+    case 0: PrintLine("Very good. Now you can go to the second grade."); break;
+    case 1: PrintLine("Are you enjoying yourself?");                     break;
+    case 2: PrintLine("Wheeeeeeeeee!!!!!");                              break;
+    case 3: PrintLine("Do you expect me to applaud?");                   break;
+  }
+}
+
+
+
+void PrintRandomJumpDeath(void)
+{
+  switch (GetRandom(3))
+  {
+    case 0: PrintLine("You should have looked before you leaped.");                   break;
+    case 1: PrintLine("In the movies, your life would be passing before your eyes."); break;
+    case 2: PrintLine("Geronimo...");                                                 break;
+  }
+}
+
+
+
 void DoJump(void)
 {
-  PrintLine("Are you enjoying yourself?");
-  TimePassed = 1;
+  int obj = 0;
+
+  if (MatchCurWord("across") || MatchCurWord("from") || MatchCurWord("in") ||
+      MatchCurWord("into") || MatchCurWord("off") || MatchCurWord("over"))
+  {
+    obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
+
+    if (obj == FOBJ_SCENERY_NOTVIS || obj == FOBJ_NOTVIS)
+      {PrintLine("That isn't visible here!"); return;}
+    else if (obj == FOBJ_AMB)
+      {PrintLine("You need to be more specific."); return;}
+    else if (obj == OBJ_YOU)
+      {PrintLine("Seriously?!"); return;}
+  }
+
+  if (obj == 0 || obj >= NUM_OBJECTS)
+  {
+    switch (Obj[OBJ_YOU].loc)
+    {
+      case ROOM_KITCHEN:
+      case ROOM_EAST_OF_CHASM:
+      case ROOM_RESERVOIR:
+      case ROOM_CHASM_ROOM:
+      case ROOM_DOME_ROOM:
+      case ROOM_SOUTH_TEMPLE:
+      case ROOM_ARAGAIN_FALLS:
+      case ROOM_SHAFT_ROOM:
+        PrintLine("This was not a very safe place to try jumping.");
+        PrintRandomJumpDeath();
+        YoureDead(); // ##### RIP #####
+      break;
+
+      case ROOM_UP_A_TREE:
+        PrintLine("In a feat of unaccustomed daring, you manage to land on your feet without killing yourself.\n");
+        GoToRoutine(ROOM_PATH);
+      break;
+
+      default:
+        PrintRandomFun();
+      break;
+    }
+  }
+  else if (Obj[obj].loc == Obj[OBJ_YOU].loc)
+  {
+    if (Obj[obj].prop & PROP_ACTOR)
+      PrintLine("It is too big to jump over.");
+    else
+      PrintRandomFun();
+  }
+  else
+    PrintLine("That would be a good trick.");
 }
 
 
@@ -4075,6 +4823,160 @@ void DoSwim(void)
 
 
 //*****************************************************************************
+void ActorResponse(int obj, int odysseus)
+{
+  switch (obj)
+  {
+    case OBJ_CYCLOPS:
+      if (odysseus)
+        DoOdysseus();
+      else
+        PrintLine("The cyclops prefers eating to making conversation.");
+    break;
+
+    case OBJ_GHOSTS:
+      PrintLine("The spirits jeer loudly and ignore you.");
+    break;
+
+    case OBJ_BAT:
+      PrintLine("    Fweep!\n    Fweep!\n    Fweep!\n    Fweep!\n    Fweep!\n    Fweep!");
+    break;
+
+    case OBJ_THIEF:
+      PrintLine("The thief is a strong, silent type.");
+    break;
+
+    case OBJ_TROLL:
+      PrintLine("The troll isn't much of a conversationalist.");
+    break;
+  }
+}
+
+
+
+int VerifyActor(int obj)
+{
+  if (obj == FOBJ_SCENERY_NOTVIS || obj == FOBJ_NOTVIS)
+    {PrintLine("Seriously?!"); return 1;}
+  else if (obj == FOBJ_AMB)
+    {PrintLine("You need to be more specific about who you want to talk to."); return 1;}
+  else if (obj == OBJ_YOU || obj >= NUM_OBJECTS)
+    {PrintLine("Seriously?!"); return 1;}
+  else if ((Obj[obj].prop & PROP_ACTOR) == 0)
+    {PrintLine("Seriously?!"); return 1;}
+  else if (Obj[obj].loc != Obj[OBJ_YOU].loc)
+    {PrintLine("That person isn't visible here!"); return 1;}
+
+  return 0;
+}
+
+
+
+// actor, *** until end of input
+
+void DoCommandActor(int obj)
+{
+  int odysseus = 0;
+
+  while (CurWord < NumStrWords)
+  {
+    if (MatchCurWord("odysseus") || MatchCurWord("ulysses"))
+      odysseus = 1;
+    else
+      CurWord++;
+  }
+
+  if (VerifyActor(obj) == 0)
+    ActorResponse(obj, odysseus);
+}
+
+
+
+// talkto/ask/tell actor (about) (***)
+
+void DoTalkTo(void)
+{
+  int obj, odysseus = 0;
+
+  obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
+  if (VerifyActor(obj)) return;
+
+  while (CurWord < NumStrWords)
+  {
+    if (MatchCurWord("then"))
+      {CurWord--; break;} // end of this turn's command; back up so "then" can be matched later
+    else if (MatchCurWord("odysseus") || MatchCurWord("ulysses"))
+      odysseus = 1;
+    else
+      CurWord++;
+  }
+
+  ActorResponse(obj, odysseus);
+}
+
+
+
+// greet/hello (,) actor
+
+void DoGreet(void)
+{
+  int obj, odysseus = 0;
+
+  MatchCurWord("and");
+  obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
+  if (VerifyActor(obj)) return;
+
+  if (obj == OBJ_THIEF && ThiefDescType == 1) // unconscious
+    PrintLine("The thief, being temporarily incapacitated, is unable to acknowledge your greeting with his usual graciousness.");
+  else if (obj == OBJ_TROLL && TrollDescType == 1) // unconscious
+    PrintLine("Unfortunately, the troll can't hear you.");
+  else
+    ActorResponse(obj, odysseus);
+}
+
+
+
+// say *** (to actor)
+
+void DoSay(void)
+{
+  int obj = 0, odysseus = 0, temp;
+
+  while (CurWord < NumStrWords)
+  {
+    if (MatchCurWord("to"))
+      {CurWord--; break;} // back up so "to" can be matched below
+    else if (MatchCurWord("odysseus") || MatchCurWord("ulysses"))
+      odysseus = 1;
+    else
+      CurWord++;
+  }
+
+  if (MatchCurWord("to"))
+  {
+    obj = GetAllObjFromInput(Obj[OBJ_YOU].loc); if (obj <= 0) return;
+  }
+
+  if (obj == 0)
+  {
+    // look for exactly one actor in player's room who is described (thief can be invisible)
+    for (temp=2; temp<NUM_OBJECTS; temp++)
+      if ((Obj[temp].prop & PROP_ACTOR) &&
+          (Obj[temp].prop & PROP_NODESC) == 0 &&
+          Obj[temp].loc == Obj[OBJ_YOU].loc)
+        {if (obj == 0) obj = temp; else {obj = 0; break;}}
+    if (obj == 0) // more than one or no actors
+      {PrintLine("You need to specify who to talk to."); return;}
+  }
+
+  if (VerifyActor(obj) == 0)
+    ActorResponse(obj, odysseus);
+}
+//*****************************************************************************
+
+
+
+//*****************************************************************************
 
 // handle things like water and boats
 
@@ -4161,6 +5063,7 @@ int InterceptActionWhenDead(int action)
     break;
 
     case A_LOOK:
+      PrintPlayerRoomDesc(1);
       PrintText("The room looks strange and unearthly");
       if (GetNumObjectsInLocation(Obj[OBJ_YOU].loc) == 0)
         PrintLine(".");
@@ -4229,17 +5132,22 @@ int InterceptTakeObj(int obj)
 {
   switch (obj)
   {
-    case OBJ_BAT:         PrintLine("You can't reach him; he's on the ceiling."); return 1;
-    case OBJ_CYCLOPS:     PrintLine("The cyclops doesn't take kindly to being grabbed."); TimePassed = 1; return 1;
-    case OBJ_THIEF:       PrintLine("Once you got him, what would you do with him?"); return 1;
-    case OBJ_TROLL:       PrintLine("The troll spits in your face, grunting \"Better luck next time\" in a rather barbarous accent."); TimePassed = 1; return 1;
-    case OBJ_MACHINE:     PrintLine("It is far too large to carry."); return 1;
-    case OBJ_TROPHY_CASE: PrintLine("The trophy case is securely fastened to the wall."); return 1;
-    case OBJ_MAILBOX:     PrintLine("It is securely anchored."); return 1;
-    case OBJ_HOT_BELL:    PrintLine("The bell is very hot and cannot be taken."); return 1;
+    case OBJ_BAT:           PrintLine("You can't reach him; he's on the ceiling."); return 1;
+    case OBJ_CYCLOPS:       PrintLine("The cyclops doesn't take kindly to being grabbed."); TimePassed = 1; return 1;
+    case OBJ_THIEF:         PrintLine("Once you got him, what would you do with him?"); return 1;
+    case OBJ_TROLL:         PrintLine("The troll spits in your face, grunting \"Better luck next time\" in a rather barbarous accent."); TimePassed = 1; return 1;
+    case OBJ_MACHINE:       PrintLine("It is far too large to carry."); return 1;
+    case OBJ_TROPHY_CASE:   PrintLine("The trophy case is securely fastened to the wall."); return 1;
+    case OBJ_MAILBOX:       PrintLine("It is securely anchored."); return 1;
+    case OBJ_KITCHEN_TABLE: PrintLine("You can't take the table."); return 1;
+    case OBJ_ATTIC_TABLE:   PrintLine("You can't take the table."); return 1;
+    case OBJ_HOT_BELL:      PrintLine("The bell is very hot and cannot be taken."); return 1;
 
     case OBJ_WATER:
-      if ((Room[Obj[OBJ_YOU].loc].prop & R_WATERHERE) == 0)
+      if ((Room[Obj[OBJ_YOU].loc].prop & R_WATERHERE) == 0 &&
+           !(IsObjVisible(OBJ_BOTTLE) &&
+             (Obj[OBJ_BOTTLE].prop & PROP_OPEN) &&
+             Obj[OBJ_WATER].loc == INSIDE + OBJ_BOTTLE))
         PrintLine("There's no water here!");
       else
         PrintLine("The water slips through your fingers.");
@@ -4256,7 +5164,7 @@ int InterceptTakeObj(int obj)
     break;
 
     case OBJ_RUSTY_KNIFE:
-      if (Obj[OBJ_SWORD].loc == 2048 + OBJ_YOU)
+      if (Obj[OBJ_SWORD].loc == INSIDE + OBJ_YOU)
         PrintLine("As you touch the rusty knife, your sword gives a single pulse of blinding blue light.");
     break;
 
@@ -4265,12 +5173,12 @@ int InterceptTakeObj(int obj)
           Obj[OBJ_THIEF].loc == ROOM_TREASURE_ROOM &&
           (Obj[OBJ_THIEF].prop & PROP_NODESC) == 0 &&
           VillainAttacking[VILLAIN_THIEF] &&
-          ThiefDescType != 1) // not unconcious
+          ThiefDescType != 1) // not unconscious
         {PrintLine("You'd be stabbed in the back first."); return 1;}
     break;
 
     case OBJ_LARGE_BAG:
-      if (ThiefDescType == 1) // unconcious
+      if (ThiefDescType == 1) // unconscious
         PrintLine("Sadly for you, the robber collapsed on top of the bag. Trying to take it would wake him.");
       else
         PrintLine("The bag will be taken over his dead body.");
@@ -4278,6 +5186,18 @@ int InterceptTakeObj(int obj)
   }
 
   return 0;
+}
+
+
+
+// if player is inside vehicle, return vehicle obj; otherwise return 0
+
+int GetPlayersVehicle(void)
+{
+  if (YouAreInBoat)
+    return OBJ_INFLATED_BOAT;
+  else
+    return 0;
 }
 
 
@@ -4326,7 +5246,7 @@ int InterceptTakeFixedObj(int obj)
     case FOBJ_BONES:
       PrintLine("A ghost appears in the room and is appalled at your desecration of the remains of a fellow adventurer. He casts a curse on your valuables and banishes them to the Land of the Living Dead. The ghost leaves, muttering obscenities.");
       MoveTreasuresToLandOfLivingDead(Obj[OBJ_YOU].loc);
-      MoveTreasuresToLandOfLivingDead(2048 + OBJ_YOU);
+      MoveTreasuresToLandOfLivingDead(INSIDE + OBJ_YOU);
       return 1;
   }
 
@@ -4404,6 +5324,7 @@ int InterceptDropPutObj(int obj, int container, int test, int multi)
         PrintLine("It goes through the grating into the darkness below.");
 
         Obj[obj].loc = ROOM_GRATING_ROOM;
+        MoveObjOrderToLast(obj);
         TimePassed = 1;
       }
 
@@ -4421,6 +5342,7 @@ int InterceptDropPutObj(int obj, int container, int test, int multi)
           PrintLine("It falls into the slide.");
   
         Obj[obj].loc = ROOM_CELLAR;
+        MoveObjOrderToLast(obj);
         TimePassed = 1;
       }
 
@@ -4466,7 +5388,7 @@ int InterceptDropPutObj(int obj, int container, int test, int multi)
     return -1;
   }
 
-  return 0;
+  return 0; // not intercepted
 }
 
 //*****************************************************************************
@@ -4495,7 +5417,7 @@ void SwordRoutine(void)
 {
   int glow, new_glow, i, room;
 
-  if (Obj[OBJ_SWORD].loc != 2048 + OBJ_YOU) return;
+  if (Obj[OBJ_SWORD].loc != INSIDE + OBJ_YOU) return;
 
   glow = Obj[OBJ_SWORD].thiefvalue;
   new_glow = 0;
@@ -4585,7 +5507,7 @@ void CandlesShrinkRoutine(void)
     Obj[OBJ_CANDLES].prop &= ~PROP_LIT;
   else
   {
-    if (Obj[OBJ_CANDLES].loc != 2048 + OBJ_YOU)
+    if (Obj[OBJ_CANDLES].loc != INSIDE + OBJ_YOU)
     {
       Obj[OBJ_CANDLES].prop &= ~PROP_LIT;
       if (IsObjVisible(OBJ_CANDLES)) PrintLine("The candles go out.");
@@ -4779,7 +5701,7 @@ void BoatPuncturedRoutine(void)
 
   flag = 0;
   for (i=0; i<6; i++)
-    if (Obj[pointy_obj[i]].loc == 2048 + OBJ_INFLATED_BOAT)
+    if (Obj[pointy_obj[i]].loc == INSIDE + OBJ_INFLATED_BOAT)
   {
     flag = 1;
     Obj[pointy_obj[i]].loc = Obj[OBJ_INFLATED_BOAT].loc;
@@ -4807,7 +5729,7 @@ void BoatPuncturedRoutine(void)
 
 void BuoyRoutine(void)
 {
-  if (BuoyFlag == 0 && Obj[OBJ_BUOY].loc == 2048 + OBJ_YOU)
+  if (BuoyFlag == 0 && Obj[OBJ_BUOY].loc == INSIDE + OBJ_YOU)
   {
     BuoyFlag = 1;
     PrintLine("You notice something funny about the feel of the buoy.");
@@ -4881,9 +5803,9 @@ void GasRoomRoutine(void)
 {
   if (Obj[OBJ_YOU].loc == ROOM_GAS_ROOM)
   {
-    int match   = (Obj[OBJ_MATCH  ].loc == 2048 + OBJ_YOU && (Obj[OBJ_MATCH  ].prop & PROP_LIT));
-    int candles = (Obj[OBJ_CANDLES].loc == 2048 + OBJ_YOU && (Obj[OBJ_CANDLES].prop & PROP_LIT));
-    int torch   = (Obj[OBJ_TORCH  ].loc == 2048 + OBJ_YOU && (Obj[OBJ_TORCH  ].prop & PROP_LIT));
+    int match   = (Obj[OBJ_MATCH  ].loc == INSIDE + OBJ_YOU && (Obj[OBJ_MATCH  ].prop & PROP_LIT));
+    int candles = (Obj[OBJ_CANDLES].loc == INSIDE + OBJ_YOU && (Obj[OBJ_CANDLES].prop & PROP_LIT));
+    int torch   = (Obj[OBJ_TORCH  ].loc == INSIDE + OBJ_YOU && (Obj[OBJ_TORCH  ].prop & PROP_LIT));
     int type = 0; // 1: lighted  2: carried
 
     if (match && MatchTurnsLeft == 2)
@@ -4975,7 +5897,7 @@ void BellHotRoutine(void)
 
 void HoldingGunkRoutine(void)
 {
-  if (Obj[OBJ_GUNK].loc == 2048 + OBJ_YOU)
+  if (Obj[OBJ_GUNK].loc == INSIDE + OBJ_YOU)
   {
     Obj[OBJ_GUNK].loc = 0;
     PrintLine("The slag was rather insubstantial, and crumbles into dust at your touch.");
@@ -5016,7 +5938,7 @@ void UpATreeRoutine(void)
       {
         count++;
         Obj[obj].loc = ROOM_PATH;
-        if (Obj[OBJ_EGG].loc == 2048 + OBJ_NEST)
+        if (Obj[OBJ_EGG].loc == INSIDE + OBJ_NEST)
         {
           other_fell = 1;
           Obj[OBJ_EGG].loc = 0;
@@ -5120,12 +6042,12 @@ void ScoreUpdateRoutine(void)
   {
     int loc = Obj[TreasureScore[i].obj].loc;
 
-    if (loc == 2048 + OBJ_YOU && (TreasureScore[i].flags & 1) == 0)
+    if (loc == INSIDE + OBJ_YOU && (TreasureScore[i].flags & 1) == 0)
     {
       TreasureScore[i].flags |= 1;
       Score += TreasureScore[i].take_value;
     }
-    else if (loc == 2048 + OBJ_TROPHY_CASE && (TreasureScore[i].flags & 2) == 0)
+    else if (loc == INSIDE + OBJ_TROPHY_CASE && (TreasureScore[i].flags & 2) == 0)
     {
       TreasureScore[i].flags |= 2;
       Score += TreasureScore[i].case_value;
@@ -5425,6 +6347,8 @@ void InitGameState(void)
   Obj[OBJ_TROPHY_CASE    ].prop |= PROP_NOTTAKEABLE;
   Obj[OBJ_MACHINE        ].prop |= PROP_NOTTAKEABLE;
   Obj[OBJ_MAILBOX        ].prop |= PROP_NOTTAKEABLE;
+  Obj[OBJ_KITCHEN_TABLE  ].prop |= PROP_NOTTAKEABLE;
+  Obj[OBJ_ATTIC_TABLE    ].prop |= PROP_NOTTAKEABLE;
   Obj[OBJ_TRUNK          ].prop |= PROP_NOTTAKEABLE;
   Obj[OBJ_HOT_BELL       ].prop |= PROP_NOTTAKEABLE;
   Obj[OBJ_POT_OF_GOLD    ].prop |= PROP_NOTTAKEABLE;
@@ -5436,10 +6360,14 @@ void InitGameState(void)
   Obj[OBJ_STILETTO       ].prop |= PROP_NOTTAKEABLE;
   Obj[OBJ_LARGE_BAG      ].prop |= PROP_NOTTAKEABLE;
   Obj[OBJ_AXE            ].prop |= PROP_NOTTAKEABLE;
+  Obj[OBJ_ZORKMID        ].prop |= PROP_NOTTAKEABLE;
+  Obj[OBJ_GRUE           ].prop |= PROP_NOTTAKEABLE;
 
   Obj[OBJ_THIEF          ].prop |= PROP_NODESC;
   Obj[OBJ_TROPHY_CASE    ].prop |= PROP_NODESC;
   Obj[OBJ_MACHINE        ].prop |= PROP_NODESC;
+  Obj[OBJ_KITCHEN_TABLE  ].prop |= PROP_NODESC;
+  Obj[OBJ_ATTIC_TABLE    ].prop |= PROP_NODESC;
   Obj[OBJ_TRUNK          ].prop |= PROP_NODESC;
   Obj[OBJ_POT_OF_GOLD    ].prop |= PROP_NODESC;
   Obj[OBJ_SCARAB         ].prop |= PROP_NODESC;
@@ -5447,6 +6375,8 @@ void InitGameState(void)
   Obj[OBJ_STILETTO       ].prop |= PROP_NODESC;
   Obj[OBJ_LARGE_BAG      ].prop |= PROP_NODESC;
   Obj[OBJ_AXE            ].prop |= PROP_NODESC;
+  Obj[OBJ_ZORKMID        ].prop |= PROP_NODESC;
+  Obj[OBJ_GRUE           ].prop |= PROP_NODESC;
 
   Obj[OBJ_TROPHY_CASE    ].prop |= PROP_OPENABLE;
   Obj[OBJ_MACHINE        ].prop |= PROP_OPENABLE;
@@ -5458,6 +6388,8 @@ void InitGameState(void)
   Obj[OBJ_LARGE_BAG      ].prop |= PROP_OPENABLE;
   Obj[OBJ_TUBE           ].prop |= PROP_OPENABLE;
 
+  Obj[OBJ_KITCHEN_TABLE  ].prop |= PROP_OPEN;
+  Obj[OBJ_ATTIC_TABLE    ].prop |= PROP_OPEN;
   Obj[OBJ_RAISED_BASKET  ].prop |= PROP_OPEN;
   Obj[OBJ_LOWERED_BASKET ].prop |= PROP_OPEN;
   Obj[OBJ_INFLATED_BOAT  ].prop |= PROP_OPEN;
@@ -5476,12 +6408,17 @@ void InitGameState(void)
   Obj[OBJ_EGG            ].prop |= PROP_INSIDEDESC;
   Obj[OBJ_CANARY         ].prop |= PROP_INSIDEDESC;
   Obj[OBJ_BROKEN_CANARY  ].prop |= PROP_INSIDEDESC;
+  Obj[OBJ_SANDWICH_BAG   ].prop |= PROP_INSIDEDESC;
+  Obj[OBJ_BOTTLE         ].prop |= PROP_INSIDEDESC;
+  Obj[OBJ_KNIFE          ].prop |= PROP_INSIDEDESC;
 
   Obj[OBJ_ROPE           ].prop |= PROP_SACRED;
   Obj[OBJ_COFFIN         ].prop |= PROP_SACRED;
   Obj[OBJ_BAR            ].prop |= PROP_SACRED;
 
   Obj[OBJ_WATER          ].prop |= PROP_EVERYWHERE;
+  Obj[OBJ_ZORKMID        ].prop |= PROP_EVERYWHERE;
+  Obj[OBJ_GRUE           ].prop |= PROP_EVERYWHERE;
 
   Obj[OBJ_AXE            ].prop |= PROP_WEAPON;
   Obj[OBJ_STILETTO       ].prop |= PROP_WEAPON;
@@ -5515,6 +6452,9 @@ void InitGameState(void)
   Obj[OBJ_BOAT_LABEL     ].prop |= PROP_INFLAMMABLE;
   Obj[OBJ_GUIDE          ].prop |= PROP_INFLAMMABLE;
   Obj[OBJ_NEST           ].prop |= PROP_INFLAMMABLE;
+
+  Obj[OBJ_KITCHEN_TABLE  ].prop |= PROP_SURFACE;
+  Obj[OBJ_ATTIC_TABLE    ].prop |= PROP_SURFACE;
 
   ItObj = OBJ_MAILBOX;
 }

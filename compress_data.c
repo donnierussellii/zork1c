@@ -51,7 +51,7 @@ struct LABEL_STRUCT RoomDesc[NUM_ROOMS] =
   { "ROOM_GRATING_CLEARING"    , "Clearing" },
   { "ROOM_CLEARING"            , "Clearing^You are in a small clearing in a well marked forest path that extends to the east and west." },
   { "ROOM_KITCHEN"             , "Kitchen" },
-  { "ROOM_ATTIC"               , "Attic^This is the attic. The only exit is a stairway leading down." },
+  { "ROOM_ATTIC"               , "Attic" },
   { "ROOM_LIVING_ROOM"         , "Living Room" },
   { "ROOM_CELLAR"              , "Cellar^You are in a dark and damp cellar with a narrow passageway leading north, and a crawlway to the south. On the west is the bottom of a steep metal ramp which is unclimbable." },
   { "ROOM_TROLL_ROOM"          , "The Troll Room^This is a small room with passages to the east and south and a forbidding hole leading west. Bloodstains and deep scratches (perhaps made by an axe) mar the walls." },
@@ -184,7 +184,7 @@ struct LABEL_STRUCT BlockMsg[NUM_BLOCK_MESSAGES] =
 
 
 
-#define NUM_OBJECTS  76
+#define NUM_OBJECTS  80
 
 
 
@@ -204,6 +204,8 @@ struct LABEL_STRUCT ObjectDesc[NUM_OBJECTS] =
   { "OBJ_TROPHY_CASE"        , "a trophy case^There is a trophy case here.^There is a trophy case here." },
   { "OBJ_MACHINE"            , "a machine^There is a machine here.^There is a machine here." },
   { "OBJ_MAILBOX"            , "a small mailbox^There is a small mailbox here.^There is a small mailbox here." },
+  { "OBJ_KITCHEN_TABLE"      , "a kitchen table^There is a kitchen table here.^There is a kitchen table here." },
+  { "OBJ_ATTIC_TABLE"        , "an attic table^There is an attic table here.^There is an attic table here." },
   { "OBJ_WATER"              , "a quantity of water^There is a quantity of water here.^There is a quantity of water here." },
   { "OBJ_SKULL"              , "a crystal skull^Lying in one corner of the room is a beautifully carved crystal skull. It appears to be grinning at you rather nastily.^There is a crystal skull here." },
   { "OBJ_TIMBERS"            , "a broken timber^There is a broken timber here.^There is a broken timber here." },
@@ -226,13 +228,13 @@ struct LABEL_STRUCT ObjectDesc[NUM_OBJECTS] =
   { "OBJ_KNIFE"              , "a nasty knife^On a table is a nasty-looking knife.^There is a nasty knife here." },
   { "OBJ_BURNED_OUT_LANTERN" , "a burned-out lantern^The deceased adventurer's useless lantern is here.^There is a burned-out lantern here." },
   { "OBJ_BAG_OF_COINS"       , "a leather bag of coins^An old leather bag, bulging with coins, is here.^An old leather bag, bulging with coins, is here." },
-  { "OBJ_LAMP"               , "a brass lantern^A battery-powered brass lantern is on the trophy case.^There is a brass lantern (battery-powered) here." },
+  { "OBJ_LAMP"               , "" },
   { "OBJ_EMERALD"            , "a large emerald^There is a large emerald here.^There is a large emerald here." },
   { "OBJ_ADVERTISEMENT"      , "a leaflet^A small leaflet is on the ground.^A small leaflet is on the ground." },
   { "OBJ_INFLATED_BOAT"      , "" },
   { "OBJ_MATCH"              , "a matchbook^There is a matchbook whose cover says \"Visit Beautiful FCD#3\" here.^There is a matchbook whose cover says \"Visit Beautiful FCD#3\" here." },
   { "OBJ_PAINTING"           , "a painting^Fortunately, there is still one chance for you to be a vandal, for on the far wall is a painting of unparalleled beauty.^A painting by a neglected genius is here." },
-  { "OBJ_CANDLES"            , "a pair of candles^On the two ends of the altar are burning candles.^There is a pair of candles here." },
+  { "OBJ_CANDLES"            , "" },
   { "OBJ_GUNK"               , "a small piece of vitreous slag^There is a small piece of vitreous slag here.^There is a small piece of vitreous slag here." },
   { "OBJ_LEAVES"             , "a pile of leaves^On the ground is a pile of leaves.^On the ground is a pile of leaves." },
   { "OBJ_PUNCTURED_BOAT"     , "a punctured boat^There is a punctured boat here.^There is a punctured boat here." },
@@ -267,7 +269,9 @@ struct LABEL_STRUCT ObjectDesc[NUM_OBJECTS] =
   { "OBJ_BAUBLE"             , "a beautiful brass bauble^There is a beautiful brass bauble here.^There is a beautiful brass bauble here." },
   { "OBJ_CANARY"             , "a golden clockwork canary^There is a golden clockwork canary nestled in the egg. It has ruby eyes and a silver beak. Through a crystal window below its left wing you can see intricate machinery inside. It appears to have wound down.^There is a golden clockwork canary here." },
   { "OBJ_BROKEN_CANARY"      , "a broken clockwork canary^There is a golden clockwork canary nestled in the egg. It seems to have recently had a bad experience. The mountings for its jewel-like eyes are empty, and its silver beak is crumpled. Through a cracked crystal window below its left wing you can see the remains of intricate machinery. It is not clear what result winding it would have, as the mainspring seems sprung.^There is a broken clockwork canary here." },
-  { "OBJ_ENGRAVINGS"         , "a wall with engravings^There are old engravings on the walls here.^There are old engravings on the walls here." }
+  { "OBJ_ENGRAVINGS"         , "a wall with engravings^There are old engravings on the walls here.^There are old engravings on the walls here." },
+  { "OBJ_ZORKMID"            , "a zorkmid^There is a zorkmid here.^There is a zorkmid here." },
+  { "OBJ_GRUE"               , "a lurking grue^There is a lurking grue here.^There is a lurking grue here." }
 };
 
 

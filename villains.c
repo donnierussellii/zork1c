@@ -51,7 +51,7 @@ void ThiefRecoverStiletto(void)
 {
   if (Obj[OBJ_STILETTO].loc == Obj[OBJ_THIEF].loc)
   {
-    Obj[OBJ_STILETTO].loc = 2048 + OBJ_THIEF;
+    Obj[OBJ_STILETTO].loc = INSIDE + OBJ_THIEF;
     Obj[OBJ_STILETTO].prop |= PROP_NODESC;
     Obj[OBJ_STILETTO].prop |= PROP_NOTTAKEABLE;
   }
@@ -71,7 +71,7 @@ int ThiefRob(int loc, int prob)
         (prob < 0 || PercentChance(prob, -1)))
   {
     flag = 1;
-    Obj[obj].loc = 2048 + OBJ_THIEF;
+    Obj[obj].loc = INSIDE + OBJ_THIEF;
     Obj[obj].prop |= PROP_MOVEDDESC;
     Obj[obj].prop |= PROP_NODESC;
     Obj[obj].prop |= PROP_NOTTAKEABLE;
@@ -149,7 +149,7 @@ int ThiefVsAdventurer(int here)
   {
     if (YouAreDead == 0 && here == 0 && PercentChance(30, -1))
     {
-      if (Obj[OBJ_STILETTO].loc == 2048 + OBJ_THIEF)
+      if (Obj[OBJ_STILETTO].loc == INSIDE + OBJ_THIEF)
       {
         Obj[OBJ_THIEF].prop &= ~PROP_NODESC;
         PrintLine("Someone carrying a large bag is casually leaning against one of the walls here. He does not speak, but it is clear from his aspect that the bag will be taken only over his dead body.");
@@ -158,7 +158,7 @@ int ThiefVsAdventurer(int here)
       }
       else
       {
-        Obj[OBJ_STILETTO].loc = 2048 + OBJ_THIEF;
+        Obj[OBJ_STILETTO].loc = INSIDE + OBJ_THIEF;
         Obj[OBJ_STILETTO].prop |= PROP_NODESC;
         Obj[OBJ_STILETTO].prop |= PROP_NOTTAKEABLE;
         Obj[OBJ_THIEF].prop &= ~PROP_NODESC;
@@ -191,7 +191,7 @@ int ThiefVsAdventurer(int here)
       prev_darkness = IsPlayerInDarkness();
 
            if (ThiefRob(Obj[OBJ_YOU].loc, 100))  robbed = 2; // room
-      else if (ThiefRob(2048 + OBJ_YOU,    -1))  robbed = 1; // player
+      else if (ThiefRob(INSIDE + OBJ_YOU,  -1))  robbed = 1; // player
 
       ThiefHere = 1;
 
@@ -248,7 +248,7 @@ int ThiefVsAdventurer(int here)
         prev_darkness = IsPlayerInDarkness();
 
              if (ThiefRob(Obj[OBJ_YOU].loc, 100))  robbed = 2; // room
-        else if (ThiefRob(2048 + OBJ_YOU,    -1))  robbed = 1; // player
+        else if (ThiefRob(INSIDE + OBJ_YOU,  -1))  robbed = 1; // player
 
         if (robbed)
         {
@@ -282,7 +282,7 @@ int ThiefDepositBooty(int room)
   int flag = 0, obj;
 
   for (obj=2; obj<NUM_OBJECTS; obj++)
-    if (Obj[obj].loc == 2048 + OBJ_THIEF &&
+    if (Obj[obj].loc == INSIDE + OBJ_THIEF &&
         Obj[obj].thiefvalue > 0 &&
         obj != OBJ_STILETTO &&
         obj != OBJ_LARGE_BAG)
@@ -303,7 +303,7 @@ int ThiefDropJunk(int room)
   int flag = 0, obj;
 
   for (obj=2; obj<NUM_OBJECTS; obj++)
-    if (Obj[obj].loc == 2048 + OBJ_THIEF &&
+    if (Obj[obj].loc == INSIDE + OBJ_THIEF &&
         Obj[obj].thiefvalue == 0 &&
         PercentChance(30, -1) &&
         obj != OBJ_STILETTO &&
@@ -357,7 +357,7 @@ void ThiefRobMaze(int room)
     PrintLine("You hear, off in the distance, someone saying \"My, I wonder what this fine item is doing here.\"");
     if (PercentChance(60, 80))
     {
-      Obj[obj].loc = 2048 + OBJ_THIEF;
+      Obj[obj].loc = INSIDE + OBJ_THIEF;
       Obj[obj].prop |= PROP_MOVEDDESC;
       Obj[obj].prop |= PROP_NODESC;
       Obj[obj].prop |= PROP_NOTTAKEABLE;
@@ -380,7 +380,7 @@ void ThiefStealJunk(int room)
         (Obj[obj].prop & PROP_SACRED) == 0 &&
         (obj == OBJ_STILETTO || PercentChance(10, -1)))
   {
-    Obj[obj].loc = 2048 + OBJ_THIEF;
+    Obj[obj].loc = INSIDE + OBJ_THIEF;
     Obj[obj].prop |= PROP_MOVEDDESC;
     Obj[obj].prop |= PROP_NODESC;
     Obj[obj].prop |= PROP_NOTTAKEABLE;
@@ -719,7 +719,7 @@ int FindWeapon(int obj)
   int i, weapon[5] = {OBJ_STILETTO, OBJ_AXE, OBJ_SWORD, OBJ_KNIFE, OBJ_RUSTY_KNIFE};
 
   for (i=0; i<5; i++)
-    if (Obj[weapon[i]].loc == 2048 + obj) return weapon[i];
+    if (Obj[weapon[i]].loc == INSIDE + obj) return weapon[i];
 
   return 0;
 }
@@ -827,12 +827,12 @@ int VillainBusy(int i)
 {
   if (i == VILLAIN_TROLL)
   {
-    if (Obj[OBJ_AXE].loc == 2048 + OBJ_TROLL)
+    if (Obj[OBJ_AXE].loc == INSIDE + OBJ_TROLL)
     {
     }
     else if (Obj[OBJ_AXE].loc == Obj[OBJ_YOU].loc && PercentChance(75, 90))
     {
-      Obj[OBJ_AXE].loc = 2048 + OBJ_TROLL;
+      Obj[OBJ_AXE].loc = INSIDE + OBJ_TROLL;
       Obj[OBJ_AXE].prop |= PROP_NODESC;
       Obj[OBJ_AXE].prop |= PROP_NOTTAKEABLE;
       Obj[OBJ_AXE].prop &= ~PROP_WEAPON;
@@ -852,12 +852,12 @@ int VillainBusy(int i)
   }
   else if (i == VILLAIN_THIEF)
   {
-    if (Obj[OBJ_STILETTO].loc == 2048 + OBJ_THIEF)
+    if (Obj[OBJ_STILETTO].loc == INSIDE + OBJ_THIEF)
     {
     }
     else if (Obj[OBJ_STILETTO].loc == Obj[OBJ_THIEF].loc)
     {
-      Obj[OBJ_STILETTO].loc = 2048 + OBJ_THIEF;
+      Obj[OBJ_STILETTO].loc = INSIDE + OBJ_THIEF;
       Obj[OBJ_STILETTO].prop |= PROP_NODESC;
       Obj[OBJ_STILETTO].prop |= PROP_NOTTAKEABLE;
       if (Obj[OBJ_THIEF].loc == Obj[OBJ_YOU].loc)
@@ -875,7 +875,7 @@ void VillainDead(int i)
 {
   if (i == VILLAIN_TROLL)
   {
-    if (Obj[OBJ_AXE].loc == 2048 + OBJ_TROLL)
+    if (Obj[OBJ_AXE].loc == INSIDE + OBJ_TROLL)
     {
       Obj[OBJ_AXE].loc = Obj[OBJ_YOU].loc;
       Obj[OBJ_AXE].prop &= ~PROP_NODESC;
@@ -950,7 +950,7 @@ void VillainUnconcious(int i)
   {
     VillainAttacking[i] = 0;
 
-    if (Obj[OBJ_AXE].loc == 2048 + OBJ_TROLL)
+    if (Obj[OBJ_AXE].loc == INSIDE + OBJ_TROLL)
     {
       Obj[OBJ_AXE].loc = Obj[OBJ_YOU].loc;
       Obj[OBJ_AXE].prop &= ~PROP_NODESC;
@@ -985,11 +985,11 @@ void VillainConscious(int i)
       PrintLine("The troll stirs, quickly resuming a fighting stance.");
     }
 
-    if (Obj[OBJ_AXE].loc == 2048 + OBJ_TROLL)
+    if (Obj[OBJ_AXE].loc == INSIDE + OBJ_TROLL)
       TrollDescType = 0; // default
     else if (Obj[OBJ_AXE].loc == ROOM_TROLL_ROOM)
     {
-      Obj[OBJ_AXE].loc = 2048 + OBJ_TROLL;
+      Obj[OBJ_AXE].loc = INSIDE + OBJ_TROLL;
       Obj[OBJ_AXE].prop |= PROP_NODESC;
       Obj[OBJ_AXE].prop |= PROP_NOTTAKEABLE;
       Obj[OBJ_AXE].prop &= ~PROP_WEAPON;
