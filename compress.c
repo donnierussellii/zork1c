@@ -12,32 +12,34 @@
 
 //64 fragments of four letters each
 char *FourFragments =
-  " thethe  Theing . ThThe  you You is  to You  of . Yon't and  and"
-  " can thaour you thatyourn thhere in f thof the t aree thou cto t"
-  "are o thu caed. hat he rwith wit nothis ng tith can'an'the bs to"
-  " be he cs yo thiis anot dinghe s lea it ou at the ro rooroom her"
+  " thethe  The. Thing The  you is  You to  of You and  and. Yoyou "
+  "our  canyourn't  in  than ththatherehe tto te thf thof t areo th"
+  "with withis ou care he che rith is a be hat he bs tou cas a s yo"
+  " notng ted.  thit thcan'an't. It, anhe se is it ere not ter re i"
 ;
 
 //64 fragments of three letters each
 char *ThreeFragments =
-  "he  ththeing Thou Theng . Tis you yoYou Yo toto  is a re  of anof andnd e t. Y cas a ines hatat "
-  "'t n't nohere soured n tcans tthaered.  beur er e ot.  hein thi on itly  wiare arth e. t ost e b"
+  "he  ththeing ThTheis ou ng . T yoyou toto  a  is"
+  "nd You Yoand of anre of e t ins aes  caed . Your"
+  "at er  bes te sur hatere nohern te. in ly can wi"
+  "e ct td. n't't atet.  itth e ithill ter hethao t"
 ;
 
 //128 fragments of two letters each
 char *TwoFragments =
-  "e  theths . ou at in ire o saneratngisd  b cn  Tr  w,  hg Throu "
-  "areastesndo tole ly  yithayoonYo Y d fhisef a ened rteorurloofve"
-  "ash  n  noomcaalnellooly gowl den''t pbe mtiriotcheeutpeusunwiho"
-  "m ntliradid.opla! blt. eoltrelice.geecwametadosiettsosadcks.ilbo"
+  "e  thes th a. out in ire sd eran oat bngis cn , r  w Tndo arThto"
+  "esea hg rou y st fit yyoon l dhahilea tef orenedseveurlo r YYoof"
+  "h llasomalno nnt gcadeool  plyne mbetirioweeraliunutwim ch epela"
+  "usottrele.come Iwaoptaicget.d.iletho'tn'dimaadieidblcedoolsis.ke"
 ;
 
 
 
 //must add up to 128
-#define NUM_4_FRAGMENTS  30  //max 64
-#define NUM_3_FRAGMENTS   0  //max 64
-#define NUM_2_FRAGMENTS  98  //max 128
+#define NUM_4_FRAGMENTS   20  //max 64
+#define NUM_3_FRAGMENTS   10  //max 64
+#define NUM_2_FRAGMENTS   98  //max 128
 
 
 

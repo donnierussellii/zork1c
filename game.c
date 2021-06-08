@@ -1443,7 +1443,7 @@ void LockUnlockGrating(int with_to, int lock_flag)
       Room[ROOM_GRATING_ROOM].prop &= ~R_LIT; // no light spilling from grate opening
       if (IsPlayerInDarkness() != prev_darkness)
       {
-        PrintBlankLine();
+        PrintNewLine();
         PrintPlayerRoomDesc(0);
       }
     }
@@ -1498,7 +1498,7 @@ void ActivateObj(int obj)
   Obj[obj].prop |= PROP_LIT;
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -1522,7 +1522,7 @@ void DeactivateObj(int obj)
   Obj[obj].prop &= ~PROP_LIT;
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -1592,7 +1592,7 @@ void DoMiscWithTo_activate_match(int with_to)
   Obj[OBJ_MATCH].prop |= PROP_LIT;
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -1623,7 +1623,7 @@ void DoMiscWithTo_deactivate_match(int with_to)
   Obj[OBJ_MATCH].prop &= ~PROP_LIT;
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -1685,7 +1685,7 @@ void DoMiscWithTo_activate_candles(int with_to)
       Obj[OBJ_CANDLES].prop |= PROP_LIT;
       if (IsPlayerInDarkness() != prev_darkness)
       {
-        PrintBlankLine();
+        PrintNewLine();
         PrintPlayerRoomDesc(1);
       }
     }
@@ -1734,7 +1734,7 @@ void DoMiscWithTo_deactivate_candles(int with_to)
   Obj[OBJ_CANDLES].prop &= ~PROP_LIT;
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -2093,7 +2093,7 @@ void DoMiscWithTo_pour_water(int with_to)
 
           if (IsPlayerInDarkness() != prev_darkness)
           {
-            PrintBlankLine();
+            PrintNewLine();
             PrintPlayerRoomDesc(1);
           }
         }
@@ -2434,7 +2434,7 @@ void DoMiscGiveTo_troll(int obj)
       Obj[obj].loc = 0;
       if (IsPlayerInDarkness() != prev_darkness)
       {
-        PrintBlankLine();
+        PrintNewLine();
         PrintPlayerRoomDesc(1);
       }
     }
@@ -2495,7 +2495,7 @@ void ThrowObjRoutine(int obj, int to)
 
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -2511,7 +2511,7 @@ void DoMiscThrowTo_chasm(int obj)
   Obj[obj].loc = 0;
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -2527,7 +2527,7 @@ void DoMiscThrowTo_river(int obj)
   Obj[obj].loc = 0;
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -2789,7 +2789,7 @@ void RaiseLowerBasketRoutine(int raise)
   //did room become darkened when basket moved
   if (IsPlayerInDarkness() != prev_darkness && prev_darkness == 0)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -2869,7 +2869,7 @@ void DoMisc_push_red_button(void)
   //did room become darkened
   if (IsPlayerInDarkness() != prev_darkness && prev_darkness == 0)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -2991,7 +2991,7 @@ void DoMisc_open_grate(void)
   Room[ROOM_GRATING_ROOM].prop |= R_LIT; // light spilling from grate opening
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(0);
   }
 }
@@ -3014,7 +3014,7 @@ void DoMisc_close_grate(void)
   Room[ROOM_GRATING_ROOM].prop &= ~R_LIT; // no light spilling from grate opening
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(0);
   }
 }
@@ -4818,6 +4818,13 @@ void DoSwim(void)
   else
     PrintLine("Go jump in a lake!");
 }
+
+
+
+void DoIntro(void)
+{
+  PrintLine("Welcome to Zork I: The Great Underground Empire!\n(c) 1980 by INFOCOM, Inc.\n  C port and parser (c) 2021 by Donnie Russell II\n\n");
+}
 //*****************************************************************************
 
 
@@ -5470,7 +5477,7 @@ void LampDrainRoutine(void)
     Obj[OBJ_LAMP].prop &= ~PROP_LIT;
     if (IsPlayerInDarkness() != prev_darkness)
     {
-      PrintBlankLine();
+      PrintNewLine();
       PrintPlayerRoomDesc(1);
     }
   }
@@ -5521,7 +5528,7 @@ void CandlesShrinkRoutine(void)
 
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -5843,7 +5850,7 @@ void MatchRoutine(void)
     Obj[OBJ_MATCH].prop &= ~PROP_LIT;
     if (IsPlayerInDarkness() != prev_darkness)
     {
-      PrintBlankLine();
+      PrintNewLine();
       PrintPlayerRoomDesc(1);
     }
   }

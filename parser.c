@@ -8,12 +8,15 @@
 
 
 
-#ifndef NO_STATUS_LINE
 #ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
-#endif
+  #define WIN32_LEAN_AND_MEAN
+  #include <windows.h>
+  #include <conio.h> // getch
+#elif __DJGPP__
+  #include <conio.h> // getch
+#else
+  //
+#endif  
 
 
 
@@ -28,6 +31,10 @@ FILE *InputStream;
 int VTMode;
 char StatusLineText[80];
 #endif
+
+#define MAX_PRINTED_LINES  23
+
+int NumPrintedLines;
 
 int CursorColumn;
 
@@ -133,6 +140,57 @@ void PrintStatusLine(void)
 
 
 
+void PrintMore(int erase)
+{
+  int i;
+
+  if (erase)
+  {
+    i = 4; while (i-- > 0) putchar('\b');
+    i = 4; while (i-- > 0) putchar(' ');
+    i = LineWidth; while (i-- > 0) putchar('\b');
+  }
+  else
+  {
+    i = LineWidth - 4; while (i-- > 0) putchar(' ');
+    putchar('M'); putchar('O'); putchar('R'); putchar('E');
+  }
+}
+
+
+
+void PrintNewLine(void)
+{
+  CursorColumn = 0;
+  NumPrintedLines++;
+
+  if (NumPrintedLines == MAX_PRINTED_LINES)
+  {
+    NumPrintedLines = 0;
+
+    if (InputStream == stdin)
+    {
+#ifdef _WIN32
+      putchar('\n');
+      PrintMore(0);
+      while (getch() == 0) {} // conio.h
+      PrintMore(1);
+#elif __DJGPP__
+      putchar('\n');
+      PrintMore(0);
+      while (getch() == 0) {} // conio.h
+      PrintMore(1);
+#else
+      getchar();
+#endif  
+    }
+    else putchar('\n');
+  }
+  else putchar('\n');
+}
+
+
+
 //does word wrapping; recognizes newline char
 //print terminated by '^' or nullchar
 void PrintText(char *p)
@@ -159,9 +217,7 @@ void PrintText(char *p)
         CursorColumn++;
       }
       if (*p == 0 || *p == '^') return; //end of string; done
-
-      putchar('\n'); //it was a newline
-      CursorColumn = 0;
+      PrintNewLine(); //it was a newline
       p++; //skip newline char and repeat inner loop
     }
 
@@ -173,8 +229,7 @@ void PrintText(char *p)
       width--;
       putchar(*p++);
     }
-    putchar('\n'); //go to next line
-    CursorColumn = 0;
+    PrintNewLine(); //go to next line
     while (*p == ' ') p++; //skip any spaces and repeat outer loop
   }
 }
@@ -185,9 +240,7 @@ void PrintText(char *p)
 void PrintLine(char *p)
 {
   PrintText(p);
-
-  putchar('\n');
-  CursorColumn = 0;
+  PrintNewLine();
 }
 
 
@@ -213,17 +266,7 @@ void PrintCompText(char *comp_text)
 void PrintCompLine(char *p)
 {
   PrintCompText(p);
-
-  putchar('\n');
-  CursorColumn = 0;
-}
-
-
-
-void PrintBlankLine(void)
-{
-  putchar('\n');
-  CursorColumn = 0;
+  PrintNewLine();
 }
 
 
@@ -353,7 +396,9 @@ void GetWords(char *prompt)
   memset(str, 0, 80);
 
   PrintText(prompt);
+
   CursorColumn = 0; // this is due to fgets below
+  NumPrintedLines = 0;
 
 #ifndef NO_STATUS_LINE
   PrintStatusLine();
@@ -1760,7 +1805,7 @@ void DropPutAllRoutine(int put_flag)
 
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -1889,7 +1934,7 @@ void ParseActionDropPut(int put_flag)
 
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -2150,7 +2195,7 @@ void OpenObj(int obj)
 
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -2176,7 +2221,7 @@ void CloseObj(int obj)
 
   if (IsPlayerInDarkness() != prev_darkness)
   {
-    PrintBlankLine();
+    PrintNewLine();
     PrintPlayerRoomDesc(1);
   }
 }
@@ -2435,7 +2480,7 @@ void Parse(void)
 
   if (CurWord == NumStrWords || MatchCurWord("then")) return;
 
-  if (CurWord > 0 && Verbosity != V_SUPERBRIEF) PrintBlankLine(); //print blank line between turns
+  if (CurWord > 0 && Verbosity != V_SUPERBRIEF) PrintNewLine(); //print blank line between turns
 
 
   // "actor, command1 (then command2 ...)"
@@ -2636,12 +2681,18 @@ void Shutdown(void)
 
 void RestartGame(void)
 {
+  int i;
+
   InitGameState(); // sets ItObj
 
   NumStrWords = 0;
   GameOver = 0;
 
-  PrintLine("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nWelcome to Zork I: The Great Underground Empire!\n(c) 1980 by INFOCOM, Inc.\n  C port and parser (c) 2021 by Donnie Russell II\n\n");
+  // clear screen
+  i = MAX_PRINTED_LINES;
+  while (i-- > 0) {PrintNewLine(); NumPrintedLines = 0;}
+
+  DoIntro();
 
   PrintPlayerRoomDesc(0);
 }
@@ -2673,7 +2724,7 @@ void main(int argc, char *argv[])
     {
       for (;;)
       {
-        if (Verbosity != V_SUPERBRIEF) PrintBlankLine();
+        if (Verbosity != V_SUPERBRIEF) PrintNewLine();
         GetWords(">");
         if (NumStrWords == 0) PrintLine("Please type your command.");
         else break;
