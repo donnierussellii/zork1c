@@ -152,18 +152,20 @@ void ExtractTextFromFile(char *filename_in, char *filename_out, int append)
 
 
 
-void main(void)
+int main(int argc, char *argv[])
 {
+  if (argc < 2)
+  {
+    printf("Usage: %s inputfile outputfile\n", argv[0]);
+    exit(1);
+  }
+
   TotalUncompressed = 0;
   TotalCompressed = 0;
 
-  CompressFile("game.c",     "_game.c");
-  CompressFile("parser.c",   "_parser.c");
-  CompressFile("villains.c", "_villain.c");
+  CompressFile(argv[1], argv[2]);
 
   printf("%i%%\n", 100 * TotalCompressed / TotalUncompressed);
 
-  ExtractTextFromFile("game.c",     "_extract.txt", 0);
-  ExtractTextFromFile("parser.c",   "_extract.txt", 1);
-  ExtractTextFromFile("villains.c", "_extract.txt", 1);
+  return 0;
 }
