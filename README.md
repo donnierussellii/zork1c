@@ -9,3 +9,13 @@ prompt, and some other little things.
 This source code is provided for personal, educational use only.
 You are welcome to use this source code to develop your own works,
 but the story-related content belongs to the original authors of Zork.
+
+Arduino Mega branch
+-------------------
+* in progress
+* unreleased
+* "oops" and "again" commands
+* lower ram usage (3-4kb) (mega requires ~1kb framebuffer)
+* no dependence on c library
+* will be ported to other systems
+* will replace this branch
